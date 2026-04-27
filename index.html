@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+      content="Sushant Ghadge's Content Creation Course - Learn content creation in Marathi. 2 Billion+ views, 1000+ videos, 150+ brands.">
+    <title>Sushant Ghadge | Creator Direction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap');
+
+        /* === NEW HERO STYLES === */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .new-hero-layer {
+            position: relative;
+            z-index: 10;
+        }
+
+        .new-gradient-text {
+            background: linear-gradient(to right, #c084fc, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .new-btn-glow:hover {
+            box-shadow: 0 0 30px rgba(192, 132, 252, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .new-hero-section {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Ensure old sections sit above canvas too */
+        .about, .video-section, .course-section, .brands-section,
+        .testimonials-section, .webinar-section, .faq-section,
+        .cta-banner, .footer {
+            position: relative;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- ===== NEW HERO SECTION (Tailwind + Three.js) ===== -->
+    <div class="new-hero-layer new-hero-section min-h-screen flex flex-col" id="home">
+
+        <!-- Navigation -->
+        <nav class="flex items-center justify-between px-10 py-8 max-w-7xl mx-auto w-full">
+            <div class="flex items-center gap-3 text-2xl font-black">
+                <span class="bg-purple-600 p-1 rounded-lg">🎬</span> Sushant Ghadge
+            </div>
+
+            <div class="hidden md:flex items-center gap-10 text-sm font-bold text-gray-400">
+                <a href="#home" class="text-white">Home</a>
+                <a href="#about" class="hover:text-purple-400 transition">About Me</a>
+                <a href="#video" class="hover:text-purple-400 transition">Video</a>
+                <a href="#course" class="hover:text-purple-400 transition">Course</a>
+                <a href="#brands" class="hover:text-purple-400 transition">Brands</a>
+                <a href="#webinar" class="hover:text-purple-400 transition">Webinar</a>
+                <a href="#faq" class="hover:text-purple-400 transition">FAQ</a>
+            </div>
+
+            <div class="flex items-center gap-5">
+                <button class="bg-white text-black px-6 py-2.5 rounded-full text-sm font-extrabold hover:bg-purple-400 transition" id="nav-join-btn">
+                    Join Course
+                </button>
+                <div class="text-[11px] border border-white/20 rounded-full px-3 py-1 flex gap-2 font-bold bg-white/5" id="lang-toggle" style="cursor:pointer;">
+                    <span class="lang-option lang-mr text-gray-500">मरा</span>
+                    <span class="lang-option lang-en text-white">EN</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Content -->
+        <main class="flex-grow flex flex-col items-center justify-center text-center px-6">
+
+            <!-- Floating Tag -->
+            <div class="mb-8 flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-5 py-2 rounded-full text-xs font-bold text-purple-300">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                NEW COURSE IS NOW LIVE!
+            </div>
+
+            <!-- Main Heading -->
+            <h1 class="text-6xl md:text-8xl font-black max-w-5xl leading-[1.05] mb-8 tracking-tight">
+                <span id="hero-line-1">Give Your Inner Creator</span> <br>
+                <span class="new-gradient-text" id="hero-line-2">A Professional Direction</span>
+            </h1>
+
+            <!-- Subtext -->
+            <p class="text-gray-400 max-w-2xl text-lg md:text-xl leading-relaxed mb-12 font-medium" id="hero-subtitle">
+                Master the art of high-end storytelling and video production in Marathi.
+                Learn the secrets behind India's biggest brands.
+            </p>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-6 mb-20">
+                <a href="#course" class="bg-[#c084fc] text-black px-12 py-5 rounded-2xl font-black text-xl new-btn-glow transition-all duration-300 no-underline">
+                    View Course
+                </a>
+                <a href="#about" class="bg-white/5 border border-white/10 backdrop-blur-md px-12 py-5 rounded-2xl font-bold text-xl hover:bg-white/10 transition no-underline text-white">
+                    Learn More
+                </a>
+            </div>
+
+            <!-- Animated Mouse Scroll -->
+            <div class="w-6 h-10 border-2 border-gray-700 rounded-full flex justify-center p-1 opacity-50">
+                <div class="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== BACKGROUND GLOWS ===== -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <!-- ===== ABOUT SECTION ===== -->
+    <section class="about" id="about">
+      <div class="section-glow section-glow-left"></div>
+      <div class="section-glow section-glow-right"></div>
+      <div class="section-mesh-overlay"></div>
+
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">About</span>
+          <h2 class="section-title">सुशांत घाडगे कोण आहेत?</h2>
+          <p class="section-subtitle">मराठी कंटेंट क्रिएशन इंडस्ट्रीतील सर्वात प्रभावशाली नावांपैकी एक</p>
+        </div>
+
+        <div class="about-grid">
+          <div class="about-image-wrapper reveal-left">
+            <div class="perspective-container">
+              <div class="about-image-card tilt-3d">
+                <div class="about-image" style="
+                background: linear-gradient(135deg, #050A18 0%, #0A1530 50%, #0D1B40 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 8rem;
+                width: 100%;
+                aspect-ratio: 4/5;
+                border-radius: 24px;
+                position: relative;
+                overflow: hidden;
+              ">
+                  <div style="
+                  position: absolute;
+                  inset: 0;
+                  background: linear-gradient(135deg, rgba(0,210,255,0.12), rgba(123,97,255,0.08));
+                "></div>
+                  <span style="position:relative;z-index:1;">🎬</span>
+                </div>
+                <div class="about-image-border-glow"></div>
+              </div>
+              <div class="about-image-glow"></div>
+            </div>
+          </div>
+
+          <div class="about-content reveal-right reveal-delay-1">
+            <div class="about-intro-text">
+              <p class="about-lead">
+                सुशांत घाडगे — एक अभिनेता, फिल्ममेकर, आणि मराठी डिजिटल कंटेंटमधील अग्रगण्य नाव. Amazon Prime Video वरील
+                <strong>"Sharmajee Ki Beti"</strong> मध्ये अभिनय केलेल्या सुशांतने कंटेंट क्रिएशनच्या जगात स्वतःचं एक
+                वेगळं स्थान निर्माण केलं आहे.
+              </p>
+              <p>
+                गेल्या काही वर्षांत त्यांनी <strong>1,000 पेक्षा जास्त व्हिडिओज</strong> तयार करून <strong>2 बिलियन+
+                  व्ह्यूज</strong> मिळवले आहेत. भारतातील सर्वात मोठ्या ब्रँड्ससोबत — Prime Video, Disney Hotstar, Zomato,
+                Cred, Realme सोबत यशस्वी कोलॅबोरेशन्स केले आहेत.
+              </p>
+              <p>
+                500K+ लोकांचा कम्युनिटी उभा करून सुशांत आज हजारो तरुणांना कंटेंट क्रिएशनची प्रोफेशनल दिशा देत आहेत. आता ते
+                त्यांचा संपूर्ण अनुभव या कोर्सद्वारे तुमच्यापर्यंत आणत आहेत.
+              </p>
+            </div>
+
+            <!-- Stats Strip -->
+            <div class="about-stats-strip reveal">
+              <div class="stat-strip-item">
+                <div class="stat-strip-number"><span class="stat-number" data-target="150">0</span><span
+                    class="stat-suffix">+</span></div>
+                <div class="stat-strip-label">Brand Deals</div>
+              </div>
+              <div class="stat-strip-divider"></div>
+              <div class="stat-strip-item">
+                <div class="stat-strip-number"><span class="stat-number" data-target="2">0</span><span
+                    class="stat-suffix">B+</span></div>
+                <div class="stat-strip-label">Total Views</div>
+              </div>
+              <div class="stat-strip-divider"></div>
+              <div class="stat-strip-item">
+                <div class="stat-strip-number"><span class="stat-number" data-target="1000">0</span><span
+                    class="stat-suffix">+</span></div>
+                <div class="stat-strip-label">Videos Created</div>
+              </div>
+              <div class="stat-strip-divider"></div>
+              <div class="stat-strip-item">
+                <div class="stat-strip-number"><span class="stat-number" data-target="500">0</span><span
+                    class="stat-suffix">K+</span></div>
+                <div class="stat-strip-label">Community</div>
+              </div>
+            </div>
+
+            <!-- Role pills -->
+            <div class="about-role-tags">
+              <span class="role-tag">🎬 Actor</span>
+              <span class="role-tag">📹 Content Creator</span>
+              <span class="role-tag">🎥 Filmmaker</span>
+              <span class="role-tag">🧑‍🏫 Mentor</span>
+            </div>
+
+            <!-- Follow CTA -->
+            <div class="about-follow-cta">
+              <a href="https://www.instagram.com/sushant_ghadge_/" target="_blank" class="follow-btn">
+                <span class="follow-icon">📷</span>
+                <span>Instagram वर Follow करा</span>
+                <span class="follow-arrow">→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VIDEO SECTION ===== -->
+    <section class="video-section" id="video">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">Video</span>
+          <h2 class="section-title">कोर्स बद्दल जाणून घ्या</h2>
+          <p class="section-subtitle">सुशांत यांच्या तोंडून ऐका — हा कोर्स कशासाठी आहे, तुम्हाला काय शिकायला मिळेल आणि
+            तुमचं आयुष्य कसं बदलू शकतं.</p>
+        </div>
+        <div class="video-outer-glow reveal-scale reveal-delay-1">
+          <div class="video-wrapper" data-video-id="">
+            <div class="video-thumbnail" style="
+              width: 100%;
+              aspect-ratio: 16/9;
+              background: linear-gradient(135deg, #0A1530 0%, #0A1530 40%, #0D1B40 70%, #0A1530 100%);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 16px;
+              position: relative;
+              overflow: hidden;
+            ">
+              <div style="
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, rgba(0,210,255,0.08), transparent 50%, rgba(0,255,198,0.08));
+              "></div>
+              <span style="font-size: 4rem; position: relative; z-index: 1;">🎥</span>
+              <span
+                style="font-size: 1.1rem; color: #a0a0b0; position: relative; z-index: 1; font-family: 'Noto Sans Devanagari', sans-serif;">व्हिडिओ
+                लवकरच येत आहे...</span>
+            </div>
+            <div class="video-play-btn"></div>
+            <div class="video-play-pulse"></div>
+            <div class="video-play-pulse-2"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COURSE SECTION ===== -->
+    <section class="course-section" id="course">
+      <div class="section-mesh-overlay"></div>
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">Course</span>
+          <h2 class="section-title">कंटेंट क्रिएशन मास्टर कोर्स</h2>
+          <p class="section-subtitle">मराठीतून शिका कंटेंट कसा तयार करायचा — शून्यापासून ते प्रो लेव्हलपर्यंत</p>
+        </div>
+        <div class="perspective-container">
+          <div class="course-card reveal-scale reveal-delay-1 tilt-3d">
+            <div class="course-card-glow"></div>
+            <div class="course-card-inner">
+              <div class="course-badge">🔥 लिमिटेड सीट्स</div>
+              <h3>कंटेंट क्रिएशन A to Z — मराठीत शिका</h3>
+              <p class="course-desc">
+                या कोर्समध्ये तुम्हाला शिकायला मिळेल — व्हिडिओ स्क्रिप्टिंग, शूटिंग, एडिटिंग, ब्रँड डील्स कसे मिळवायचे,
+                सोशल
+                मीडिया ग्रोथ स्ट्रॅटेजी, मोनेटायझेशन आणि बरंच काही. सुशांत घाडगे यांच्या वर्षानुवर्षांच्या अनुभवातून तयार
+                झालेला हा कोर्स तुमचं कंटेंट क्रिएशन करिअर बदलू शकतो.
+              </p>
+              <div class="course-features">
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>व्हिडिओ स्क्रिप्टिंग आणि स्टोरीटेलिंग</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>प्रोफेशनल व्हिडिओ शूटिंग</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>एडिटिंग मास्टरक्लास</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>ब्रँड कोलॅबोरेशन कसं करायचं</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>सोशल मीडिया ग्रोथ स्ट्रॅटेजी</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>मोनेटायझेशन — पैसे कसे कमवायचे</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>रील्स, शॉर्ट्स आणि लॉन्ग फॉर्म कंटेंट</span>
+                </div>
+                <div class="course-feature">
+                  <div class="icon">✓</div>
+                  <span>लाइव्ह Q&A सेशन्स सुशांतसोबत</span>
+                </div>
+              </div>
+              <div class="course-cta">
+                <div class="course-price">
+                  <span class="original">₹9,999</span>
+                  <span class="current">₹4,999</span>
+                </div>
+                <a href="#" class="btn-primary btn-glow" id="enroll-btn">
+                  <span class="btn-icon">🚀</span> आत्ताच एनरोल करा
+                  <span class="btn-shine"></span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <!-- ===== BRANDS SECTION (Marquee) ===== -->
+    <section class="brands-section" id="brands">
+      <div class="brands-bg-glow brands-glow-1"></div>
+      <div class="brands-bg-glow brands-glow-2"></div>
+
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">Brands</span>
+          <h2 class="section-title">ज्या ब्रँड्ससोबत काम केलं</h2>
+          <p class="section-subtitle">भारतातील सर्वात मोठ्या ब्रँड्ससोबत कंटेंट तयार केला</p>
+        </div>
+
+        <div class="brands-counter reveal reveal-delay-1">
+          <div class="brands-counter-inner">
+            <div class="brands-counter-number">150<span class="brands-counter-plus">+</span></div>
+            <div class="brands-counter-label">ब्रँड कोलॅबोरेशन्स</div>
+          </div>
+          <div class="brands-counter-ring"></div>
+          <div class="brands-counter-ring brands-counter-ring-2"></div>
+        </div>
+      </div>
+
+      <!-- Row 1 -->
+      <div class="marquee-container">
+        <div class="marquee-track marquee-right">
+          <div class="brand-card">Prime Video</div>
+          <div class="brand-card">Disney Hotstar</div>
+          <div class="brand-card">ICC</div>
+          <div class="brand-card">Zee Marathi</div>
+          <div class="brand-card">HDFC Life</div>
+          <div class="brand-card">Cottonking</div>
+          <div class="brand-card">Reliance Digital</div>
+          <div class="brand-card">Zomato</div>
+          <div class="brand-card">Realme</div>
+          <div class="brand-card">Prime Video</div>
+          <div class="brand-card">Disney Hotstar</div>
+          <div class="brand-card">ICC</div>
+          <div class="brand-card">Zee Marathi</div>
+          <div class="brand-card">HDFC Life</div>
+          <div class="brand-card">Cottonking</div>
+          <div class="brand-card">Reliance Digital</div>
+          <div class="brand-card">Zomato</div>
+          <div class="brand-card">Realme</div>
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="marquee-container">
+        <div class="marquee-track marquee-left">
+          <div class="brand-card">Centre Fruit</div>
+          <div class="brand-card">ITC Ashirwad</div>
+          <div class="brand-card">Chitale</div>
+          <div class="brand-card">MyFreshToHome</div>
+          <div class="brand-card">Villain Life</div>
+          <div class="brand-card">CEAT Tyres</div>
+          <div class="brand-card">McDowell's</div>
+          <div class="brand-card">Beyond Kerala</div>
+          <div class="brand-card">Dosti Realty</div>
+          <div class="brand-card">Centre Fruit</div>
+          <div class="brand-card">ITC Ashirwad</div>
+          <div class="brand-card">Chitale</div>
+          <div class="brand-card">MyFreshToHome</div>
+          <div class="brand-card">Villain Life</div>
+          <div class="brand-card">CEAT Tyres</div>
+          <div class="brand-card">McDowell's</div>
+          <div class="brand-card">Beyond Kerala</div>
+          <div class="brand-card">Dosti Realty</div>
+        </div>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="marquee-container">
+        <div class="marquee-track marquee-right marquee-slow">
+          <div class="brand-card">Suraksha Smart City</div>
+          <div class="brand-card">Cred</div>
+          <div class="brand-card">Slice</div>
+          <div class="brand-card">IFFL Finance</div>
+          <div class="brand-card">Unacademy</div>
+          <div class="brand-card">Scaler</div>
+          <div class="brand-card">Vita App</div>
+          <div class="brand-card">DIPYA IBS</div>
+          <div class="brand-card">Suraksha Smart City</div>
+          <div class="brand-card">Cred</div>
+          <div class="brand-card">Slice</div>
+          <div class="brand-card">IFFL Finance</div>
+          <div class="brand-card">Unacademy</div>
+          <div class="brand-card">Scaler</div>
+          <div class="brand-card">Vita App</div>
+          <div class="brand-card">DIPYA IBS</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TESTIMONIALS SECTION ===== -->
+    <section class="testimonials-section" id="testimonials">
+      <div class="section-mesh-overlay"></div>
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">Testimonials</span>
+          <h2 class="section-title">विद्यार्थ्यांचे अनुभव</h2>
+          <p class="section-subtitle">ज्यांनी सुशांत यांच्याकडून शिकलं त्यांच्या प्रतिक्रिया</p>
+        </div>
+        <div class="testimonials-grid">
+          <div class="perspective-container">
+            <div class="testimonial-card reveal tilt-3d">
+              <div class="testimonial-stars">★★★★★</div>
+              <p class="testimonial-text">"सुशांत सरांचा कोर्स माझ्या आयुष्यातला सर्वात चांगला निर्णय होता. आज मी स्वतः 3
+                ब्रँड्ससोबत काम करतो!"</p>
+              <div class="testimonial-author">
+                <div class="author-avatar">प</div>
+                <div class="author-info">
+                  <span class="author-name">प्रशांत पाटील</span>
+                  <span class="author-role">कंटेंट क्रिएटर</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="perspective-container">
+            <div class="testimonial-card reveal reveal-delay-1 tilt-3d">
+              <div class="testimonial-stars">★★★★★</div>
+              <p class="testimonial-text">"मला कंटेंट क्रिएशनबद्दल काहीच माहित नव्हतं. या कोर्सने मला A to Z सर्वकाही
+                शिकवलं. अल्पावधीतच माझ्या पेजवर 50K फॉलोअर्स आले!"</p>
+              <div class="testimonial-author">
+                <div class="author-avatar">स</div>
+                <div class="author-info">
+                  <span class="author-name">स्नेहा देशमुख</span>
+                  <span class="author-role">YouTuber</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="perspective-container">
+            <div class="testimonial-card reveal reveal-delay-2 tilt-3d">
+              <div class="testimonial-stars">★★★★★</div>
+              <p class="testimonial-text">"ब्रँड डील्स कशा मिळवायच्या हे सुशांत सरांनी इतक्या सोप्या पद्धतीने शिकवलं की
+                आता
+                मी दर महिन्याला ब्रँड कोलॅबोरेशन करतो."</p>
+              <div class="testimonial-author">
+                <div class="author-avatar">र</div>
+                <div class="author-info">
+                  <span class="author-name">राहुल जाधव</span>
+                  <span class="author-role">Instagram Creator</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== BOOK A WEBINAR SECTION ===== -->
+    <section class="webinar-section" id="webinar">
+      <div class="section-mesh-overlay"></div>
+      <div class="webinar-glow webinar-glow-1"></div>
+      <div class="webinar-glow webinar-glow-2"></div>
+
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">Webinar</span>
+          <h2 class="section-title">सुशांतसोबत वेबिनार बुक करा</h2>
+          <p class="section-subtitle">सुशांत घाडगे यांच्यासोबत एक्सक्लुसिव्ह 1-on-1 वेबिनार सेशन बुक करा आणि तुमच्या कंटेंट क्रिएशन प्रवासाला दिशा द्या.</p>
+        </div>
+
+        <div class="webinar-card-wrapper reveal-scale reveal-delay-1">
+          <div class="perspective-container">
+            <div class="webinar-card tilt-3d">
+              <div class="webinar-card-glow"></div>
+              <div class="webinar-card-inner">
+                <div class="webinar-info">
+                  <div class="webinar-badge">🎯 Exclusive Session</div>
+                  <h3>Personal Webinar with Sushant Ghadge</h3>
+                  <p class="webinar-desc">
+                    सुशांत घाडगे यांच्याशी थेट बोला — तुमच्या कंटेंट स्ट्रॅटेजीबद्दल, ब्रँड डील्सबद्दल, ग्रोथबद्दल किंवा कोणत्याही प्रश्नांबद्दल.
+                    हे पर्सनलाइज्ड सेशन तुमच्या कंटेंट क्रिएशन करिअरला एका वेगळ्या लेव्हलवर नेऊ शकतं.
+                  </p>
+                  <div class="webinar-features">
+                    <div class="webinar-feature">
+                      <div class="webinar-feature-icon">📅</div>
+                      <span>30 मिनिटांचे सेशन</span>
+                    </div>
+                    <div class="webinar-feature">
+                      <div class="webinar-feature-icon">💡</div>
+                      <span>पर्सनलाइज्ड मार्गदर्शन</span>
+                    </div>
+                    <div class="webinar-feature">
+                      <div class="webinar-feature-icon">🎥</div>
+                      <span>कंटेंट स्ट्रॅटेजी रिव्ह्यू</span>
+                    </div>
+                    <div class="webinar-feature">
+                      <div class="webinar-feature-icon">🤝</div>
+                      <span>थेट Q&A सुशांतसोबत</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="webinar-cta-area">
+                  <div class="webinar-calendar-visual">
+                    <div class="calendar-icon-large">📅</div>
+                    <div class="calendar-pulse"></div>
+                    <div class="calendar-pulse calendar-pulse-2"></div>
+                  </div>
+                  <a href="https://calendly.com/dhumalsamrat/30min" target="_blank" rel="noopener noreferrer" class="btn-primary btn-glow webinar-book-btn" id="book-webinar-btn">
+                    <span class="btn-icon">🗓️</span> आत्ताच बुक करा
+                    <span class="btn-shine"></span>
+                  </a>
+                  <p class="webinar-slots-note">⚡ मर्यादित स्लॉट्स उपलब्ध</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAQ SECTION ===== -->
+    <section class="faq-section" id="faq">
+      <div class="section-mesh-overlay"></div>
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-tag">FAQ</span>
+          <h2 class="section-title">वारंवार विचारले जाणारे प्रश्न</h2>
+          <p class="section-subtitle">कोर्सबद्दल तुमच्या मनात असलेल्या प्रश्नांची उत्तरे</p>
+        </div>
+        <div class="faq-list">
+
+          <div class="faq-item reveal">
+            <div class="faq-question">
+              <span>हा कोर्स कोणासाठी आहे?</span>
+              <div class="faq-icon">+</div>
+            </div>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                हा कोर्स प्रत्येकासाठी आहे — जर तुम्हाला कंटेंट क्रिएशन शिकायचं असेल, मग तुम्ही विद्यार्थी असा, नोकरदार
+                असा किंवा बिझनेसमन. कोणत्याही पूर्व अनुभवाची गरज नाही. शून्यापासून शिकवले जाईल.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal reveal-delay-1">
+            <div class="faq-question">
+              <span>कोर्सची भाषा कोणती आहे?</span>
+              <div class="faq-icon">+</div>
+            </div>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                संपूर्ण कोर्स मराठी भाषेत आहे. सुशांत घाडगे स्वतः मराठीतून शिकवतात, त्यामुळे तुम्हाला सर्व काही सहज समजेल.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal reveal-delay-2">
+            <div class="faq-question">
+              <span>कोर्समध्ये काय शिकवलं जातं?</span>
+              <div class="faq-icon">+</div>
+            </div>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                व्हिडिओ स्क्रिप्टिंग, शूटिंग टेक्निक्स, प्रोफेशनल एडिटिंग, सोशल मीडिया ग्रोथ स्ट्रॅटेजी, ब्रँड डील्स कसे
+                मिळवायचे, मोनेटायझेशन, YouTube, Instagram, रील्स, शॉर्ट्स — सर्व काही A to Z शिकवलं जातं.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal reveal-delay-3">
+            <div class="faq-question">
+              <span>कोर्स किती दिवसांचा आहे?</span>
+              <div class="faq-icon">+</div>
+            </div>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                कोर्सचा कालावधी आणि तपशील लवकरच जाहीर केला जाईल. तुम्ही एनरोल केल्यावर तुम्हाला सर्व माहिती मिळेल.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <div class="faq-question">
+              <span>कोर्ससाठी कोणती उपकरणे लागतात?</span>
+              <div class="faq-icon">+</div>
+            </div>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                सुरुवातीला फक्त तुमचा स्मार्टफोन पुरेसा आहे! कोर्समध्ये फोनवरूनच प्रोफेशनल कंटेंट कसा तयार करायचा हे
+                शिकवलं जातं. पुढे गेल्यावर कॅमेरा आणि इतर उपकरणे कोणती घ्यायची याबद्दलही मार्गदर्शन मिळेल.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item reveal reveal-delay-1">
+            <div class="faq-question">
+              <span>सुशांत यांच्याशी थेट संवाद साधता येतो का?</span>
+              <div class="faq-icon">+</div>
+            </div>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                होय! कोर्समध्ये लाइव्ह Q&A सेशन्स आहेत जिथे तुम्ही सुशांत यांच्याशी थेट बोलू शकता आणि तुमच्या प्रश्नांची
+                उत्तरे मिळवू शकता.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA BANNER ===== -->
+    <section class="cta-banner">
+      <div class="cta-banner-bg"></div>
+      <div class="container">
+        <div class="cta-banner-content reveal">
+          <h2>तुमचा कंटेंट क्रिएशन प्रवास<br><span class="gradient-text">आजच सुरू करा!</span></h2>
+          <p>सुशांत घाडगे यांच्या मार्गदर्शनाखाली शिका आणि तुमचं कंटेंट क्रिएशन करिअर घडवा.</p>
+          <a href="#course" class="btn-primary btn-glow btn-large">
+            <span class="btn-icon">🚀</span> आत्ताच एनरोल करा
+            <span class="btn-shine"></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer" id="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <h3>सुशांत घाडगे</h3>
+            <p>
+              कंटेंट क्रिएटर, फिल्ममेकर, अभिनेता आणि मेंटॉर. भारतातील 150+ ब्रँड्ससोबत काम केलेल्या सुशांत घाडगे
+              यांच्याकडून शिका.
+            </p>
+            <div class="footer-social">
+              <a href="#" class="social-icon" aria-label="YouTube" title="YouTube">▶</a>
+              <a href="https://www.instagram.com/sushant_ghadge_/" target="_blank" class="social-icon"
+                aria-label="Instagram" title="Instagram">📷</a>
+              <a href="#" class="social-icon" aria-label="Twitter" title="Twitter">🐦</a>
+            </div>
+          </div>
+          <div class="footer-links">
+            <h4>लिंक्स</h4>
+            <a href="#home">होम</a>
+            <a href="#about">माझ्याबद्दल</a>
+            <a href="#course">कोर्स</a>
+            <a href="#brands">ब्रँड्स</a>
+            <a href="#faq">FAQ</a>
+          </div>
+          <div class="footer-links">
+            <h4>संपर्क</h4>
+            <a href="mailto:contactsushantghadge@gmail.com">ईमेल</a>
+            <a href="https://www.instagram.com/sushant_ghadge_/" target="_blank">Instagram DM</a>
+            <a href="#">YouTube</a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          &copy; 2026 सुशांत घाडगे. सर्व हक्क राखीव.
+        </div>
+      </div>
+    </footer>
+
+    <!-- ===== PAYMENT MODAL ===== -->
+    <div class="payment-overlay" id="payment-overlay">
+      <div class="payment-modal">
+        <button class="payment-modal-close" id="payment-modal-close" aria-label="Close">&times;</button>
+        <div class="payment-modal-header">
+          <div class="payment-modal-icon">🎬</div>
+          <h3>कंटेंट क्रिएशन मास्टर कोर्स</h3>
+          <p class="payment-modal-price">
+            <span class="payment-price-original">₹9,999</span>
+            <span class="payment-price-current">₹4,999</span>
+          </p>
+        </div>
+        <form class="payment-form" id="payment-form">
+          <div class="payment-field">
+            <label for="pay-name">तुमचे नाव / Your Name</label>
+            <input type="text" id="pay-name" name="name" placeholder="पूर्ण नाव टाका" required minlength="2" maxlength="100" autocomplete="name">
+          </div>
+          <div class="payment-field">
+            <label for="pay-email">ईमेल / Email</label>
+            <input type="email" id="pay-email" name="email" placeholder="example@email.com" required autocomplete="email">
+          </div>
+          <div class="payment-field">
+            <label for="pay-phone">फोन नंबर / Phone</label>
+            <input type="tel" id="pay-phone" name="phone" placeholder="10 अंकी मोबाइल नंबर" required pattern="[6-9][0-9]{9}" maxlength="10" autocomplete="tel">
+          </div>
+          <button type="submit" class="btn-primary btn-glow payment-submit-btn" id="payment-submit-btn">
+            <span class="btn-icon">🔒</span>
+            <span class="payment-btn-text">Pay ₹4,999 Securely</span>
+            <span class="btn-shine"></span>
+          </button>
+          <p class="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
+        </form>
+        <div class="payment-loading" id="payment-loading">
+          <div class="payment-loading-spinner"></div>
+          <p>ऑर्डर तयार होत आहे...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAYMENT NOTIFICATIONS ===== -->
+    <div class="payment-toast" id="payment-toast">
+      <div class="payment-toast-icon" id="toast-icon">✅</div>
+      <div class="payment-toast-content">
+        <p class="payment-toast-title" id="toast-title">Payment Successful!</p>
+        <p class="payment-toast-msg" id="toast-msg">Your enrollment is confirmed.</p>
+      </div>
+      <button class="payment-toast-close" id="toast-close">&times;</button>
+    </div>
+
+    <!-- Razorpay Checkout SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="script.js"></script>
+
+    <!-- Three.js 3D Background -->
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.querySelector('#bg-canvas'),
+            antialias: true,
+            alpha: true
+        });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        camera.position.z = 5;
+
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+        mainLight.position.set(5, 5, 5);
+        scene.add(mainLight);
+
+        const purpleLight = new THREE.PointLight(0xa855f7, 2, 10);
+        purpleLight.position.set(-2, -2, 2);
+        scene.add(purpleLight);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const particlesGeometry = new THREE.BufferGeometry();
+        const count = 300;
+        const positions = new Float32Array(count * 3);
+
+        for(let i = 0; i < count * 3; i++) {
+            positions[i] = (Math.random() - 0.5) * 15;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ size: 0.02, color: 0x818cf8 });
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particles);
+
+        const animateThree = () => {
+            requestAnimationFrame(animateThree);
+            particles.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animateThree();
+    </script>
+</body>
+</html>
