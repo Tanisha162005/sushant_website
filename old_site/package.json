@@ -1,0 +1,22 @@
+{
+  "name": "sushant-ghadge-course",
+  "version": "1.0.0",
+  "description": "Sushant Ghadge Content Creation Course with Razorpay Payment Integration",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
+    "razorpay": "^2.9.5"
+  },
+  "keywords": ["razorpay", "payment", "course"],
+  "license": "ISC"
+}
