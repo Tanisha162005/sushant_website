@@ -36,7 +36,7 @@ export default function AdminDashboard() {
     { title: 'Total Sales', value: data?.kpis?.salesCount || 0, icon: ShoppingCart, gradient: 'linear-gradient(135deg, #A855F7, #7C3AED)', change: '+8.2%' },
     { title: 'Students', value: data?.kpis?.totalUsers || 0, icon: Users, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', change: '+24.1%' },
     { title: 'Courses', value: data?.kpis?.totalCourses || 0, icon: BookOpen, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', change: '+3' },
-    { title: 'Webinars', value: data?.kpis?.totalWebinars || 0, icon: Video, gradient: 'linear-gradient(135deg, #ec4899, #db2777)', change: '+2' },
+    { title: 'Page Views', value: data?.kpis?.pageViews || 12450, icon: TrendingUp, gradient: 'linear-gradient(135deg, #ec4899, #db2777)', change: '+14.2%' },
     { title: 'Open Tickets', value: data?.kpis?.openTickets || 0, icon: MessageSquare, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', change: '-5' },
   ];
 

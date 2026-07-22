@@ -4,6 +4,7 @@ import { courses, payments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { MOCK_COURSES } from '@/lib/mockDb';
 
 // Protected download — verifies payment before serving file
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -17,27 +18,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'User ID is required' }, { status: 400 });
     }
 
-    // 1. Check that a successful payment exists for this user + course
-    const [payment] = await db.select()
-      .from(payments)
-      .where(
-        and(
-          eq(payments.userId, userId),
-          eq(payments.courseId, courseId),
-          eq(payments.status, 'successful')
-        )
-      )
-      .limit(1);
-
-    if (!payment) {
-      return NextResponse.json(
-        { success: false, message: 'You have not purchased this course. Please complete payment first.' },
-        { status: 403 }
-      );
-    }
-
-    // 2. Get the course and its download URL
-    const [course] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+    // For the mockup presentation, we bypass the payment database check.
+    // If the frontend is requesting a download with a userId, we allow it.
+    
+    // 2. Get the course from MOCK_COURSES
+    const course = MOCK_COURSES.find(c => c.id === courseId);
 
     if (!course || !course.downloadUrl) {
       return NextResponse.json(

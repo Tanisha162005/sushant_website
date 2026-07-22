@@ -5,11 +5,15 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 
+import { MOCK_COURSES } from '@/lib/mockDb';
+
+export const dynamic = 'force-dynamic';
+
 // GET all courses
 export async function GET() {
   try {
-    const allCourses = await db.select().from(courses).orderBy(courses.createdAt);
-    return NextResponse.json({ success: true, data: allCourses });
+    // Return in-memory courses instead of DB
+    return NextResponse.json({ success: true, data: MOCK_COURSES });
   } catch (error) {
     console.error('Error fetching courses:', error);
     return NextResponse.json({ success: false, message: 'Failed to fetch courses' }, { status: 500 });
@@ -28,6 +32,7 @@ export async function POST(req: NextRequest) {
     const category = formData.get('category') as string || null;
     const status = (formData.get('status') as string) || 'draft';
     const zipFile = formData.get('zipFile') as File | null;
+    const imageFile = formData.get('imageFile') as File | null;
 
     if (!title || !description || isNaN(price)) {
       return NextResponse.json({ success: false, message: 'Title, description, and price are required' }, { status: 400 });
@@ -51,7 +56,27 @@ export async function POST(req: NextRequest) {
       downloadUrl = `/api/admin/courses/file/${fileName}`;
     }
 
-    const newCourse = await db.insert(courses).values({
+    let imageUrl: string | null = null;
+
+    // Handle Image file upload
+    if (imageFile && imageFile.size > 0) {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'thumbnails');
+      await mkdir(uploadDir, { recursive: true });
+
+      const fileExtension = path.extname(imageFile.name) || '.jpg';
+      const fileName = `${randomUUID()}${fileExtension}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      const bytes = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filePath, buffer);
+
+      imageUrl = `/uploads/thumbnails/${fileName}`;
+    }
+
+    // MOCK insert instead of DB
+    const newCourse = {
+      id: randomUUID(),
       title,
       description,
       price,
@@ -59,9 +84,14 @@ export async function POST(req: NextRequest) {
       category,
       status: status as 'draft' | 'published' | 'archived',
       downloadUrl,
-    }).returning();
+      imageUrl,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    MOCK_COURSES.push(newCourse);
 
-    return NextResponse.json({ success: true, data: newCourse[0] }, { status: 201 });
+    return NextResponse.json({ success: true, data: newCourse }, { status: 201 });
   } catch (error) {
     console.error('Error creating course:', error);
     return NextResponse.json({ success: false, message: 'Failed to create course' }, { status: 500 });

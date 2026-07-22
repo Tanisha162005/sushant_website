@@ -65,35 +65,30 @@ export const About = () => {
               </p>
             </div>
 
-            <div className="about-stats-strip reveal">
-              <div className="stat-strip-item">
-                <div className="stat-strip-number">
-                  <Counter target={150} suffix="+" />
-                </div>
-                <div className="stat-strip-label">{t('brandDeals')}</div>
+            {/* Journey Timeline */}
+            <div className="journey-timeline reveal reveal-delay-2">
+              <div className="journey-step">
+                <div className="journey-dot" />
+                <div className="journey-year">2018</div>
+                <div className="journey-label">Started YouTube</div>
               </div>
-              <div className="stat-strip-divider"></div>
-              <div className="stat-strip-item">
-                <div className="stat-strip-number">
-                  <Counter target={2} suffix="B+" />
-                </div>
-                <div className="stat-strip-label">{t('totalViews')}</div>
+              <div className="journey-step">
+                <div className="journey-dot" />
+                <div className="journey-year">2020</div>
+                <div className="journey-label">500K Subscribers</div>
               </div>
-              <div className="stat-strip-divider"></div>
-              <div className="stat-strip-item">
-                <div className="stat-strip-number">
-                  <Counter target={1000} suffix="+" />
-                </div>
-                <div className="stat-strip-label">{t('videosCreated')}</div>
+              <div className="journey-step">
+                <div className="journey-dot" />
+                <div className="journey-year">2022</div>
+                <div className="journey-label">150+ Brand Deals</div>
               </div>
-              <div className="stat-strip-divider"></div>
-              <div className="stat-strip-item">
-                <div className="stat-strip-number">
-                  <Counter target={500} suffix="K+" />
-                </div>
-                <div className="stat-strip-label">{t('community')}</div>
+              <div className="journey-step">
+                <div className="journey-dot" />
+                <div className="journey-year">2024</div>
+                <div className="journey-label">Masterclass Launch</div>
               </div>
             </div>
+
 
             <div className="about-role-tags">
               <span className="role-tag">🎬 Actor</span>

@@ -10,7 +10,6 @@ export const Counter = ({ target, suffix = '' }: { target: number, suffix?: stri
     
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        let start = 0;
         const duration = 2000;
         const startTime = performance.now();
         

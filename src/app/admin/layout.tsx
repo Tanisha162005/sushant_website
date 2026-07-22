@@ -11,7 +11,6 @@ const sidebarLinks = [
   { name: 'Students', href: '/admin/students', icon: Users },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Coupons', href: '/admin/coupons', icon: Tag },
-  { name: 'Webinars', href: '/admin/webinars', icon: Video },
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];

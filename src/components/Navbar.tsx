@@ -1,25 +1,13 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export const Navbar = () => {
   const { t, lang, toggleLang } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileMenuOpen]);
-
-  const closeMenu = () => setMobileMenuOpen(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [activeSection, setActiveSection] = useState('#home');
 
   const navLinks = [
     { href: '#home', label: t('footerHome') },
@@ -30,8 +18,53 @@ export const Navbar = () => {
     { href: '#faq', label: t('footerFaq') },
   ];
 
+  const handleScroll = useCallback(() => {
+    setScrolled(window.scrollY > 50);
+
+    // Scroll progress
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    setScrollProgress(progress);
+
+    // Active section detection
+    const sections = navLinks.map(l => l.href.replace('#', ''));
+    let current = '#home';
+    for (const id of sections) {
+      const el = document.getElementById(id);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= 150) {
+          current = `#${id}`;
+        }
+      }
+    }
+    setActiveSection(current);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
+
+  const closeMenu = () => setMobileMenuOpen(false);
+
+  const scrollTo = (href: string) => {
+    const id = href.replace('#', '');
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <>
+      {/* Scroll Progress Bar */}
+      <div className="scroll-progress-bar" style={{ width: `${scrollProgress}%` }} />
+
       <nav
         style={{
           position: 'fixed',
@@ -58,10 +91,26 @@ export const Navbar = () => {
             padding: '1.25rem 2.5rem',
           }}
         >
-          {/* Logo */}
-          <a href="#home" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
-            <span style={{ background: 'linear-gradient(135deg, #9333ea, #6366f1)', padding: '0.375rem', borderRadius: '0.5rem', fontSize: '1rem' }}>🎬</span>
-            <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.025em' }}>Sushant Ghadge</span>
+          {/* Logo — Gradient first letter */}
+          <a href="#home" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
+            <span style={{
+              fontSize: '1.6rem',
+              fontWeight: 900,
+              letterSpacing: '-0.025em',
+              color: '#fff',
+            }}>
+              <span style={{
+                background: 'linear-gradient(135deg, #A855F7, #D8B4FE)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>S</span>ushant <span style={{
+                background: 'linear-gradient(135deg, #A855F7, #D8B4FE)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>G</span>hadge
+            </span>
           </a>
 
           {/* Desktop Nav Links */}
@@ -72,23 +121,34 @@ export const Navbar = () => {
                 href={link.href}
                 onClick={(e) => {
                   e.preventDefault();
-                  const targetId = link.href.replace('#', '');
-                  const targetElement = document.getElementById(targetId);
-                  if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth' });
-                  }
+                  scrollTo(link.href);
                 }}
+                className={activeSection === link.href ? 'nav-link-active' : ''}
                 style={{
                   fontSize: '0.875rem',
                   fontWeight: 700,
-                  color: link.href === '#home' ? '#fff' : '#9ca3af',
+                  color: activeSection === link.href ? '#c084fc' : '#9ca3af',
                   textDecoration: 'none',
                   transition: 'color 0.2s',
+                  position: 'relative',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = link.href === '#home' ? '#fff' : '#9ca3af')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = activeSection === link.href ? '#c084fc' : '#9ca3af')}
               >
                 {link.label}
+                {activeSection === link.href && (
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '-6px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '4px',
+                    height: '4px',
+                    borderRadius: '50%',
+                    background: '#c084fc',
+                    boxShadow: '0 0 8px rgba(192, 132, 252, 0.6)',
+                  }} />
+                )}
               </a>
             ))}
           </div>
@@ -100,7 +160,7 @@ export const Navbar = () => {
               href="#course"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById('course')?.scrollIntoView({ behavior: 'smooth' });
+                scrollTo('#course');
               }}
               style={{
                 backgroundColor: '#fff',
@@ -145,13 +205,12 @@ export const Navbar = () => {
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
             >
               <span style={{ color: lang === 'mr' ? '#fff' : '#6b7280', transition: 'color 0.2s' }}>मरा</span>
-              <span style={{ color: lang === 'en' ? '#fff' : '#6b7280', transition: 'color 0.2s' }}>EN</span>
+              <span style={{ color: lang === 'en' ? '#fff' : '#6b7280', transition: 'color 0.2s' }}>ENG</span>
             </div>
           </div>
 
           {/* Mobile Right */}
           <div className="flex md:hidden" style={{ alignItems: 'center', gap: '0.75rem', position: 'relative', zIndex: 60 }}>
-            {/* Mobile lang toggle */}
             <div
               onClick={toggleLang}
               style={{
@@ -167,10 +226,9 @@ export const Navbar = () => {
               }}
             >
               <span style={{ color: lang === 'mr' ? '#fff' : '#6b7280' }}>मरा</span>
-              <span style={{ color: lang === 'en' ? '#fff' : '#6b7280' }}>EN</span>
+              <span style={{ color: lang === 'en' ? '#fff' : '#6b7280' }}>ENG</span>
             </div>
 
-            {/* Hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
@@ -219,23 +277,17 @@ export const Navbar = () => {
             onClick={(e) => {
               e.preventDefault();
               closeMenu();
-              const targetId = link.href.replace('#', '');
-              const targetElement = document.getElementById(targetId);
-              if (targetElement) {
-                setTimeout(() => {
-                  targetElement.scrollIntoView({ behavior: 'smooth' });
-                }, 300); // wait for menu to close
-              }
+              setTimeout(() => scrollTo(link.href), 300);
             }}
             style={{
               fontSize: '1.5rem',
               fontWeight: 700,
-              color: 'rgba(255,255,255,0.85)',
+              color: activeSection === link.href ? '#c084fc' : 'rgba(255,255,255,0.85)',
               textDecoration: 'none',
               transition: 'color 0.2s',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.85)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = activeSection === link.href ? '#c084fc' : 'rgba(255,255,255,0.85)')}
           >
             {link.label}
           </a>
@@ -245,9 +297,7 @@ export const Navbar = () => {
           onClick={(e) => {
             e.preventDefault();
             closeMenu();
-            setTimeout(() => {
-              document.getElementById('course')?.scrollIntoView({ behavior: 'smooth' });
-            }, 300);
+            setTimeout(() => scrollTo('#course'), 300);
           }}
           style={{
             marginTop: '1rem',

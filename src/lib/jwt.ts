@@ -7,7 +7,7 @@ const REFRESH_TOKEN_EXPIRY = '7d';
 
 export type JwtPayload = {
   userId: string;
-  role: 'user' | 'admin';
+  role: string;
 };
 
 export const generateTokens = (payload: JwtPayload) => {

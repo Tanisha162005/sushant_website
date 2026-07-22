@@ -11,18 +11,25 @@ export class AdminService {
       totalRevenue: sql<number>`cast(sum(${payments.amount}) as integer)`,
       salesCount: sql<number>`cast(count(*) as integer)`
     }).from(payments).where(sql`${payments.status} = 'successful'`);
-    const [webinarStats] = await db.select({ count: sql<number>`cast(count(*) as integer)` }).from(webinars);
     const [ticketStats] = await db.select({ count: sql<number>`cast(count(*) as integer)` }).from(supportTickets).where(sql`${supportTickets.status} = 'open'`);
 
-    // Monthly revenue chart data (mocked for simplicity, in a real app this would group by month)
-    const revenueChart = [
-      { name: 'Jan', revenue: 4000 },
-      { name: 'Feb', revenue: 3000 },
-      { name: 'Mar', revenue: 5000 },
-      { name: 'Apr', revenue: 4500 },
-      { name: 'May', revenue: 6000 },
-      { name: 'Jun', revenue: 7000 },
-    ];
+    // Fetch actual monthly revenue data
+    const monthlyStats = await db.execute(sql`
+      SELECT 
+        to_char(created_at, 'Mon') as name, 
+        SUM(amount) as revenue,
+        COUNT(DISTINCT user_id) as students
+      FROM payments
+      WHERE status = 'successful'
+      GROUP BY to_char(created_at, 'Mon'), EXTRACT(month FROM created_at)
+      ORDER BY EXTRACT(month FROM created_at)
+    `);
+
+    const revenueChart = monthlyStats.rows.map((row: Record<string, unknown>) => ({
+      name: row.name,
+      revenue: Number(row.revenue) / 100, // convert from cents
+      students: Number(row.students)
+    }));
 
     return {
       kpis: {
@@ -30,7 +37,7 @@ export class AdminService {
         totalCourses: courseStats.count || 0,
         totalRevenue: (paymentStats.totalRevenue || 0) / 100, // convert from cents
         salesCount: paymentStats.salesCount || 0,
-        totalWebinars: webinarStats.count || 0,
+        pageViews: 0, // Requires an analytics integration to track
         openTickets: ticketStats.count || 0,
       },
       revenueChart,

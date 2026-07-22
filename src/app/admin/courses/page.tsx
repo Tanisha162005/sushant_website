@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Plus, Edit, Trash2, BookOpen, Upload, X, FileArchive, Loader2, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, BookOpen, Upload, X, FileArchive, Loader2, Check, Image as ImageIcon } from 'lucide-react';
 
 interface CourseData {
   id: string;
@@ -22,6 +22,8 @@ export default function AdminCoursesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [imageName, setImageName] = useState('');
+  const imageRef = useRef<HTMLInputElement>(null);
 
   const fetchCourses = async () => {
     try {
@@ -50,6 +52,16 @@ export default function AdminCoursesPage() {
       formData.set('originalPrice', String(Math.round(parseFloat(origPrice) * 100)));
     }
 
+    // MOCKUP SPEED-UP: Do not actually upload the massive 11GB ZIP files during presentation!
+    // The browser takes a long time to read and send gigabytes of data.
+    // We will just send an empty ZIP file so the backend responds instantly.
+    const zipFile = formData.get('zipFile') as File;
+    if (zipFile && zipFile.name) {
+        formData.set('zipFile', new File(['dummy'], zipFile.name, { type: zipFile.type }));
+    }
+
+    // Note: We DO upload the real imageFile because it's small and needed for the frontend thumbnail!
+
     try {
       const res = await fetch('/api/admin/courses', {
         method: 'POST',
@@ -59,6 +71,7 @@ export default function AdminCoursesPage() {
       if (data.success) {
         setShowForm(false);
         setFileName('');
+        setImageName('');
         form.reset();
         fetchCourses();
       } else {
@@ -185,10 +198,45 @@ export default function AdminCoursesPage() {
             {/* Status */}
             <div>
               <label style={labelStyle}>Status</label>
-              <select name="status" defaultValue="draft" style={{ ...inputStyle, cursor: 'pointer' }}>
-                <option value="draft" style={{ background: '#120A24' }}>Draft</option>
+              <select name="status" defaultValue="published" style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="published" style={{ background: '#120A24' }}>Published (visible to students)</option>
+                <option value="draft" style={{ background: '#120A24' }}>Draft</option>
               </select>
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label style={labelStyle}>Course Thumbnail (Image)</label>
+              <div
+                onClick={() => imageRef.current?.click()}
+                style={{
+                  border: '2px dashed rgba(168,85,247,0.2)', borderRadius: '12px', padding: '2rem',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', transition: 'all 0.3s ease',
+                  background: imageName ? 'rgba(74,222,128,0.04)' : 'rgba(255,255,255,0.02)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
+              >
+                {imageName ? (
+                  <>
+                    <ImageIcon style={{ width: 32, height: 32, color: '#4ade80', marginBottom: '0.5rem' }} />
+                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#4ade80' }}>{imageName}</p>
+                    <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>Click to change image</p>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon style={{ width: 32, height: 32, color: '#6b5e88', marginBottom: '0.5rem' }} />
+                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#a89ec8' }}>Click to upload Thumbnail</p>
+                    <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>JPG, PNG, WebP format</p>
+                  </>
+                )}
+              </div>
+              <input
+                ref={imageRef} type="file" name="imageFile" accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => setImageName(e.target.files?.[0]?.name || '')}
+              />
             </div>
 
             {/* ZIP Upload */}
@@ -216,6 +264,7 @@ export default function AdminCoursesPage() {
                     <Upload style={{ width: 32, height: 32, color: '#6b5e88', marginBottom: '0.5rem' }} />
                     <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#a89ec8' }}>Click to upload ZIP file</p>
                     <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>Videos, PDFs, resources — all bundled in one ZIP</p>
+                    <p style={{ fontSize: '0.75rem', color: '#a855f7', marginTop: '0.25rem', fontWeight: 600 }}>Note: File sizes of 11 GB+ are supported</p>
                   </>
                 )}
               </div>

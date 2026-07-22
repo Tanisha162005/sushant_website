@@ -26,9 +26,9 @@ export const Background3D = () => {
     mainLight.position.set(5, 5, 5);
     scene.add(mainLight);
 
-    const purpleLight = new THREE.PointLight(0xa855f7, 2, 10);
-    purpleLight.position.set(-2, -2, 2);
-    scene.add(purpleLight);
+    const whiteLight = new THREE.PointLight(0xffffff, 2, 10);
+    whiteLight.position.set(-2, -2, 2);
+    scene.add(whiteLight);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
@@ -41,7 +41,7 @@ export const Background3D = () => {
       positions[i] = (Math.random() - 0.5) * 15;
     }
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const particlesMaterial = new THREE.PointsMaterial({ size: 0.02, color: 0x818cf8 });
+    const particlesMaterial = new THREE.PointsMaterial({ size: 0.02, color: 0x9ca3af });
     const particles = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particles);
 

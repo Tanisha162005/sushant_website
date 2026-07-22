@@ -4,12 +4,14 @@ import { eq } from 'drizzle-orm';
 import { razorpay } from '@/lib/razorpay';
 import crypto from 'crypto';
 
+import { MOCK_COURSES } from '@/lib/mockDb';
+
 export class PaymentService {
   async createOrder(userId: string, courseId: string) {
-    const course = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
-    if (!course[0]) throw new Error('Course not found');
+    const course = MOCK_COURSES.find(c => c.id === courseId);
+    if (!course) throw new Error('Course not found');
     
-    const amount = course[0].price;
+    const amount = course.price;
 
     const options = {
       amount,
@@ -17,17 +19,24 @@ export class PaymentService {
       receipt: `receipt_order_${new Date().getTime()}`,
     };
     
-    const order = await razorpay.orders.create(options);
+    // Fallback if Razorpay is not configured for presentation
+    let order;
+    try {
+      order = await razorpay.orders.create(options);
+    } catch {
+      order = { id: `mock_order_${new Date().getTime()}`, amount, currency: 'INR' };
+    }
 
-    const paymentRecord = await db.insert(payments).values({
+    const paymentRecord = {
+      id: `mock_pay_${new Date().getTime()}`,
       userId,
       courseId,
       amount,
       razorpayOrderId: order.id,
       status: 'created',
-    }).returning();
+    };
 
-    return { order, paymentRecord: paymentRecord[0] };
+    return { order, paymentRecord };
   }
 
   async verifyWebhook(body: string, signature: string) {

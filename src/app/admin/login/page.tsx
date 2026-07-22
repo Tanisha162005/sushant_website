@@ -207,7 +207,7 @@ export default function AdminLoginPage() {
             </button>
 
             <p style={{ fontSize: '0.75rem', color: '#6b5e88', textAlign: 'center', marginTop: '0.5rem' }}>
-              Use password <span style={{ color: '#D8B4FE', fontWeight: 600 }}>"admin"</span> for dev access
+              First login will auto-create your account. Default password is <span style={{ color: '#D8B4FE', fontWeight: 600 }}>"admin"</span>
             </p>
           </form>
         </div>

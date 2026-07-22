@@ -5,14 +5,16 @@ import { VideoSection } from '@/components/VideoSection';
 import { Course } from '@/components/Course';
 import { Brands } from '@/components/Brands';
 import { Testimonials } from '@/components/Testimonials';
-import { Webinar } from '@/components/Webinar';
 import { FAQ } from '@/components/FAQ';
 import { Footer } from '@/components/Footer';
 import { ClientSetup } from '@/components/ClientSetup';
+import { FloatingCTA } from '@/components/FloatingCTA';
+import { FloatingElements } from '@/components/FloatingElements';
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen relative">
+      <FloatingElements />
       <ClientSetup />
       <Navbar />
       <Hero />
@@ -25,9 +27,9 @@ export default function Home() {
       <Course />
       <Brands />
       <Testimonials />
-      <Webinar />
       <FAQ />
       <Footer />
+      <FloatingCTA />
     </div>
   );
 }
