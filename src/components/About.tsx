@@ -1,9 +1,32 @@
 'use client';
 import { Counter } from './Counter';
 import { useLanguage } from '@/context/LanguageContext';
+import { useRef, useEffect } from 'react';
 
 export const About = () => {
   const { t } = useLanguage();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          videoRef.current?.play().catch((err) => {
+            console.log('Autoplay prevented by browser:', err);
+          });
+        } else {
+          videoRef.current?.pause();
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (videoRef.current) {
+      observer.observe(videoRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section className="about" id="about">
@@ -22,30 +45,22 @@ export const About = () => {
           <div className="about-image-wrapper reveal-left">
             <div className="perspective-container">
               <div className="about-image-card tilt-3d">
-                <div
+                <video
+                  ref={videoRef}
+                  src="/about_section_video.MOV"
                   className="about-image"
+                  loop
+                  playsInline
                   style={{
                     background: 'linear-gradient(135deg, #050A18 0%, #0A1530 50%, #0D1B40 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '8rem',
                     width: '100%',
                     aspectRatio: '4/5',
                     borderRadius: '24px',
                     position: 'relative',
                     overflow: 'hidden',
+                    objectFit: 'cover',
                   }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(135deg, rgba(0,210,255,0.12), rgba(123,97,255,0.08))',
-                    }}
-                  ></div>
-                  <span style={{ position: 'relative', zIndex: 1 }}>🎬</span>
-                </div>
+                />
                 <div className="about-image-border-glow"></div>
               </div>
               <div className="about-image-glow"></div>

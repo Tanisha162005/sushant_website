@@ -47,7 +47,10 @@ export const Footer = () => {
         <div className="container">
           <div className="footer-content">
             <div className="footer-brand">
-              <h3>{lang === 'mr' ? 'सुशांत घाडगे' : 'Sushant Ghadge'}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                <h3 style={{ margin: 0 }}>{lang === 'mr' ? 'सुशांत घाडगे' : 'Sushant Ghadge'}</h3>
+              </div>
               <p>
                 {t('footerDesc')}
               </p>

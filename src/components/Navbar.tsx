@@ -92,7 +92,8 @@ export const Navbar = () => {
           }}
         >
           {/* Logo — Gradient first letter */}
-          <a href="#home" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
+          <a href="#home" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
+            <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
             <span style={{
               fontSize: '1.6rem',
               fontWeight: 900,

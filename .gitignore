@@ -42,3 +42,6 @@ next-env.d.ts
 
 # uploads (course content ZIPs)
 /uploads/
+
+# Ignore large video files to avoid GitHub limits
+*.MOV

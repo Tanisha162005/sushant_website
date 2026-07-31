@@ -10,8 +10,25 @@ import { Footer } from '@/components/Footer';
 import { ClientSetup } from '@/components/ClientSetup';
 import { FloatingCTA } from '@/components/FloatingCTA';
 import { FloatingElements } from '@/components/FloatingElements';
+import { ComingSoon } from '@/components/ComingSoon';
 
+/**
+ * Home Page
+ * =========
+ * Conditionally renders:
+ *   - Coming Soon page when WEBSITE_LIVE is not "true" (pre-launch)
+ *   - Full website when WEBSITE_LIVE is "true" (post-launch)
+ *
+ * To launch the full site, set WEBSITE_LIVE=true in .env.local and redeploy.
+ */
 export default function Home() {
+  // Server-side env check — no NEXT_PUBLIC_ prefix needed
+  const isLive = process.env.WEBSITE_LIVE === 'true';
+
+  if (!isLive) {
+    return <ComingSoon />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen relative">
       <FloatingElements />
