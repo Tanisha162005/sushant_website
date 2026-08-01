@@ -121,10 +121,20 @@ export function ComingSoon() {
 
   // 3D Tilt, Parallax, Magnetic Button
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
       const { innerWidth, innerHeight } = window;
-      const nx = (e.clientX / innerWidth) * 2 - 1;
-      const ny = -(e.clientY / innerHeight) * 2 + 1;
+      let clientX, clientY;
+
+      if ('touches' in e) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = (e as MouseEvent).clientX;
+        clientY = (e as MouseEvent).clientY;
+      }
+
+      const nx = (clientX / innerWidth) * 2 - 1;
+      const ny = -(clientY / innerHeight) * 2 + 1;
 
       // 3D Perspective Tilt
       gsap.to(cardRef.current, {
@@ -148,8 +158,8 @@ export function ComingSoon() {
         const btnCenterX = rect.left + rect.width / 2;
         const btnCenterY = rect.top + rect.height / 2;
         
-        const distX = e.clientX - btnCenterX;
-        const distY = e.clientY - btnCenterY;
+        const distX = clientX - btnCenterX;
+        const distY = clientY - btnCenterY;
         const distance = Math.sqrt(distX * distX + distY * distY);
 
         const gravityRadius = 150;
@@ -177,7 +187,11 @@ export function ComingSoon() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleMouseMove);
+    };
   }, []);
 
   const toggleLanguage = () => setLang((prev) => (prev === 'en' ? 'mr' : 'en'));
@@ -238,8 +252,10 @@ export function ComingSoon() {
 
         .cs-orb-1 {
           position: absolute;
-          width: 20vw;
-          height: 20vw;
+          width: 40vw;
+          height: 40vw;
+          min-width: 250px;
+          min-height: 250px;
           left: 5vw;
           top: 15vh;
           background-color: rgba(0, 212, 255, 0.20); /* Cyan atmosphere */
@@ -251,8 +267,10 @@ export function ComingSoon() {
 
         .cs-orb-2 {
           position: absolute;
-          width: 25vw;
-          height: 25vw;
+          width: 50vw;
+          height: 50vw;
+          min-width: 300px;
+          min-height: 300px;
           right: 5vw;
           bottom: 0vh;
           background-color: rgba(112, 0, 255, 0.25); /* Purple atmosphere */
@@ -260,6 +278,22 @@ export function ComingSoon() {
           pointer-events: none;
           z-index: 0;
           animation: morph 14s ease-in-out infinite alternate;
+        }
+
+        @media (max-width: 768px) {
+          .cs-orb-1, .cs-orb-2 {
+            filter: blur(40px);
+          }
+          .cs-orb-1 {
+            width: 70vw;
+            height: 70vw;
+            left: -10vw;
+          }
+          .cs-orb-2 {
+            width: 80vw;
+            height: 80vw;
+            right: -10vw;
+          }
         }
 
         .cs-input::placeholder {
