@@ -12,6 +12,10 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/_next') ||
       pathname.startsWith('/static') ||
       pathname === '/favicon.ico' ||
+      pathname === '/robots.txt' ||
+      pathname.startsWith('/sitemap') ||
+      pathname.endsWith('.xml') ||
+      pathname.endsWith('.webmanifest') ||
       pathname === '/api/subscribe' ||
       pathname === '/'
     ) {
@@ -55,5 +59,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/:path*',
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.*\\.xml|.*\\.webmanifest).*)',
+  ],
 };
