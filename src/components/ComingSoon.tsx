@@ -47,7 +47,7 @@ const content = {
   },
   mr: {
     badge: '+ लवकरच येत आहे',
-    headline: 'कंटेंट क्रिएटर्ससाठी काहीतरी\nमोठं येतंय',
+    headline: 'कंटेंट क्रिएटर्ससाठी\nकाहीतरी मोठं\nयेतंय!',
     subheadline:
       'मास्टरक्लास अधिकृतपणे लॉन्च होण्याआधी Early Access मिळवण्यासाठी\nतुमची ईमेल नोंदवा.',
     placeholder: 'तुमचा ईमेल प्रविष्ट करा',
@@ -276,11 +276,12 @@ export function ComingSoon() {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          overflow: 'hidden',
+          overflowX: 'hidden',
+          overflowY: 'auto',
           backgroundColor: '#030305',
           fontFamily: 'var(--font-body)',
           color: '#ffffff',
-          padding: '24px',
+          padding: '100px 16px 40px 16px',
           perspective: '1200px',
         }}
       >
@@ -295,7 +296,7 @@ export function ComingSoon() {
             top: 0,
             left: 0,
             right: 0,
-            padding: '32px 48px',
+            padding: 'clamp(20px, 5vw, 32px) clamp(20px, 5vw, 48px)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -356,9 +357,9 @@ export function ComingSoon() {
             background: 'rgba(10, 10, 12, 0.6)', /* Dark transparent glass */
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            borderRadius: '40px',
+            borderRadius: 'clamp(24px, 5vw, 40px)',
             border: '1px solid rgba(255, 255, 255, 0.04)',
-            padding: '80px 48px',
+            padding: 'clamp(40px, 8vw, 80px) clamp(20px, 5vw, 48px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -380,8 +381,8 @@ export function ComingSoon() {
               fontSize: '11px',
               fontWeight: 700,
               letterSpacing: '1.5px',
-              marginBottom: '40px',
-              fontFamily: 'var(--font-heading)',
+              marginBottom: 'clamp(24px, 5vw, 40px)',
+              fontFamily: lang === 'en' ? 'var(--font-english-heading, "Outfit")' : 'var(--font-marathi-heading, "Baloo 2")',
               textTransform: 'uppercase',
               background: '#1a0b2e',
             }}
@@ -393,12 +394,12 @@ export function ComingSoon() {
           <h1
             ref={headlineRef}
             style={{
-              fontFamily: 'var(--font-heading)',
-              fontSize: 'clamp(42px, 6vw, 64px)', // Huge exact match
+              fontFamily: lang === 'en' ? 'var(--font-english-heading, "Outfit")' : 'var(--font-marathi-heading, "Baloo 2")',
+              fontSize: 'clamp(32px, 8vw, 64px)',
               fontWeight: 700,
-              lineHeight: 1.05,
-              letterSpacing: '-2px',
-              marginBottom: '24px',
+              lineHeight: 1.1,
+              letterSpacing: '-1px',
+              marginBottom: 'clamp(16px, 4vw, 24px)',
               whiteSpace: 'pre-line',
               color: '#ffffff',
             }}
@@ -410,11 +411,11 @@ export function ComingSoon() {
           <p
             ref={subheadRef}
             style={{
-              fontFamily: 'var(--font-body)',
+              fontFamily: lang === 'en' ? 'var(--font-english, "Inter")' : 'var(--font-marathi, "Hind")',
               fontSize: '16px',
               lineHeight: 1.6,
               color: '#888888',
-              marginBottom: '64px',
+              marginBottom: 'clamp(32px, 6vw, 64px)',
               whiteSpace: 'pre-line',
               maxWidth: '540px',
             }}
@@ -443,7 +444,7 @@ export function ComingSoon() {
                   required
                   style={{
                     width: '100%',
-                    padding: '20px 24px',
+                    padding: 'clamp(16px, 4vw, 20px) clamp(16px, 4vw, 24px)',
                     borderRadius: '16px',
                     border: '1px solid #222222',
                     background: '#161616',
@@ -466,7 +467,7 @@ export function ComingSoon() {
                     disabled={status === 'loading'}
                     style={{
                       width: '100%',
-                      padding: '20px 24px',
+                      padding: 'clamp(16px, 4vw, 20px) clamp(16px, 4vw, 24px)',
                       borderRadius: '16px',
                       border: 'none',
                       background: '#ffffff',
