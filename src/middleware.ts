@@ -2,10 +2,29 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-// This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
+  const isLive = process.env.WEBSITE_LIVE === 'true';
+  const pathname = request.nextUrl.pathname;
+
+  // Coming Soon Mode: Block everything except essential routes
+  if (!isLive) {
+    if (
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/static') ||
+      pathname === '/favicon.ico' ||
+      pathname === '/api/subscribe' ||
+      pathname === '/'
+    ) {
+      return NextResponse.next();
+    }
+    
+    // Redirect all other requests to root (Coming Soon page)
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Live Mode: Normal Admin authentication logic
   // Check if the path is under /admin (but not /admin/login)
-  if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin/login')) {
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
     
     // Attempt to get the token from cookies
     const token = request.cookies.get('admin_token')?.value;
@@ -35,7 +54,6 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
-  matcher: '/admin/:path*',
+  matcher: '/:path*',
 };

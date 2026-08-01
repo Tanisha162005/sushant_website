@@ -8,6 +8,7 @@ interface CourseData {
   description: string;
   price: number;
   originalPrice: number | null;
+  imageUrl?: string | null;
   downloadUrl: string | null;
 }
 
