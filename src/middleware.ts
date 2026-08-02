@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { shouldShowWebsite } from '@/lib/site-mode';
 
 export async function middleware(request: NextRequest) {
-  const isLive = process.env.WEBSITE_LIVE === 'true';
+  const hostname = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const isLive = shouldShowWebsite(hostname);
   const pathname = request.nextUrl.pathname;
 
   // Coming Soon Mode: Block everything except essential routes

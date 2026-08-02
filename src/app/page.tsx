@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
 import { About } from '@/components/About';
@@ -11,19 +12,21 @@ import { ClientSetup } from '@/components/ClientSetup';
 import { FloatingCTA } from '@/components/FloatingCTA';
 import { FloatingElements } from '@/components/FloatingElements';
 import { ComingSoon } from '@/components/ComingSoon';
+import { shouldShowWebsite } from '@/lib/site-mode';
 
 /**
  * Home Page
  * =========
  * Conditionally renders:
- *   - Coming Soon page when WEBSITE_LIVE is not "true" (pre-launch)
- *   - Full website when WEBSITE_LIVE is "true" (post-launch)
+ *   - Coming Soon page when the request is from the main domain and WEBSITE_LIVE is not "true"
+ *   - Full website when WEBSITE_LIVE is "true" or request is from the app subdomain
  *
  * To launch the full site, set WEBSITE_LIVE=true in .env.local and redeploy.
  */
-export default function Home() {
-  // Server-side env check — no NEXT_PUBLIC_ prefix needed
-  const isLive = process.env.WEBSITE_LIVE === 'true';
+export default async function Home() {
+  const headersList = await headers();
+  const hostname = headersList.get('x-forwarded-host') || headersList.get('host');
+  const isLive = shouldShowWebsite(hostname);
 
   if (!isLive) {
     return <ComingSoon />;
