@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
-import { MOCK_COURSES } from '@/lib/mockDb';
+import { db } from '@/db';
+import { courses } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
 // GET published courses for the public frontend
 export async function GET() {
   try {
-    const publishedCourses = MOCK_COURSES.filter(c => c.status === 'published');
+    const publishedCourses = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.status, 'published'));
+      
     return NextResponse.json({ success: true, data: publishedCourses });
   } catch (error) {
     console.error('Error fetching public courses:', error);

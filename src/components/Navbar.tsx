@@ -1,9 +1,14 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 export const Navbar = () => {
   const { t, lang, toggleLang } = useLanguage();
+  const { user } = useAuth();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -92,7 +97,7 @@ export const Navbar = () => {
           }}
         >
           {/* Logo — Gradient first letter */}
-          <a href="#home" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
+          <Link href="/" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
             <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
             <span style={{
               fontSize: '1.6rem',
@@ -112,17 +117,19 @@ export const Navbar = () => {
                 backgroundClip: 'text',
               }}>G</span>hadge
             </span>
-          </a>
+          </Link>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex" style={{ alignItems: 'center', gap: '2.5rem' }}>
             {navLinks.map((link) => (
               <a
                 key={link.href}
-                href={link.href}
+                href={pathname === '/' ? link.href : `/${link.href}`}
                 onClick={(e) => {
-                  e.preventDefault();
-                  scrollTo(link.href);
+                  if (pathname === '/') {
+                    e.preventDefault();
+                    scrollTo(link.href);
+                  }
                 }}
                 className={activeSection === link.href ? 'nav-link-active' : ''}
                 style={{
@@ -156,12 +163,64 @@ export const Navbar = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex" style={{ alignItems: 'center', gap: '1.25rem' }}>
+            {user ? (
+              <Link
+                href="/dashboard"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: '#fff',
+                  textDecoration: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '9999px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  backgroundColor: '#a855f7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#fff',
+                }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span>Dashboard</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: '#9ca3af',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
+              >
+                Sign In
+              </Link>
+            )}
+
             {/* Join Course Button */}
             <a
-              href="#course"
+              href={pathname === '/' ? '#course' : '/#course'}
               onClick={(e) => {
-                e.preventDefault();
-                scrollTo('#course');
+                if (pathname === '/') {
+                  e.preventDefault();
+                  scrollTo('#course');
+                }
               }}
               style={{
                 backgroundColor: '#fff',
@@ -271,28 +330,57 @@ export const Navbar = () => {
         }}
         className="md:hidden"
       >
-        {navLinks.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            onClick={(e) => {
-              e.preventDefault();
-              closeMenu();
-              setTimeout(() => scrollTo(link.href), 300);
-            }}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', flex: 1 }}>
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={pathname === '/' ? link.href : `/${link.href}`}
+              onClick={(e) => {
+                if (pathname === '/') {
+                  e.preventDefault();
+                  scrollTo(link.href);
+                }
+                closeMenu();
+              }}
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                color: activeSection === link.href ? '#c084fc' : '#fff',
+                textDecoration: 'none',
+                letterSpacing: '0.5px',
+              }}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+        {user ? (
+          <Link
+            href="/dashboard"
+            onClick={closeMenu}
             style={{
               fontSize: '1.5rem',
               fontWeight: 700,
-              color: activeSection === link.href ? '#c084fc' : 'rgba(255,255,255,0.85)',
+              color: '#c084fc',
               textDecoration: 'none',
-              transition: 'color 0.2s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = activeSection === link.href ? '#c084fc' : 'rgba(255,255,255,0.85)')}
           >
-            {link.label}
-          </a>
-        ))}
+            Dashboard ({user.name})
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            onClick={closeMenu}
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.85)',
+              textDecoration: 'none',
+            }}
+          >
+            Sign In
+          </Link>
+        )}
         <a
           href="#course"
           onClick={(e) => {

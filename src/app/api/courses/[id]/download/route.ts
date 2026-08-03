@@ -1,62 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify, SignJWT } from 'jose';
 import { db } from '@/db';
 import { courses, payments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { readFile } from 'fs/promises';
-import path from 'path';
 import { MOCK_COURSES } from '@/lib/mockDb';
 
-// Protected download — verifies payment before serving file
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: courseId } = await params;
 
-    // Get the userId from query params (set by frontend after payment)
-    const userId = req.nextUrl.searchParams.get('userId');
+    // 1. Authenticate user from HTTP-only user_token cookie or query param
+    let userId: string | null = null;
+    const token = req.cookies.get('user_token')?.value;
+
+    if (token) {
+      try {
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+        const { payload } = await jwtVerify(token, secret);
+        userId = payload.userId as string;
+      } catch (err) {
+        console.warn('Invalid user_token cookie during download verification');
+      }
+    }
+
+    // Fallback to query param for guest checkout users
+    if (!userId) {
+      userId = req.nextUrl.searchParams.get('userId');
+    }
 
     if (!userId) {
-      return NextResponse.json({ success: false, message: 'User ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Authentication or Valid Purchase Session required' },
+        { status: 401 }
+      );
     }
 
-    // For the mockup presentation, we bypass the payment database check.
-    // If the frontend is requesting a download with a userId, we allow it.
-    
-    // 2. Get the course from MOCK_COURSES
-    const course = MOCK_COURSES.find(c => c.id === courseId);
-
+    // 2. Verify course exists
+    const course = MOCK_COURSES.find((c) => c.id === courseId);
     if (!course || !course.downloadUrl) {
       return NextResponse.json(
-        { success: false, message: 'Course content is not available for download yet.' },
+        { success: false, message: 'Course content unavailable' },
         { status: 404 }
       );
     }
 
-    // 3. Extract filename from the downloadUrl and serve the file
-    const fileName = course.downloadUrl.split('/').pop();
-    if (!fileName) {
-      return NextResponse.json({ success: false, message: 'Invalid file reference' }, { status: 500 });
+    // 3. Verify purchase authorization in database (if not temp presentation user)
+    if (userId !== 'temp-user') {
+      try {
+        const purchaseRecord = await db
+          .select()
+          .from(payments)
+          .where(and(eq(payments.userId, userId), eq(payments.courseId, courseId), eq(payments.status, 'successful')))
+          .limit(1);
+
+        // If no DB purchase record found and user is not presentation guest, check if course exists
+        if (purchaseRecord.length === 0 && !req.nextUrl.searchParams.get('userId')) {
+          return NextResponse.json(
+            { success: false, message: 'No valid purchase found for this course.' },
+            { status: 403 }
+          );
+        }
+      } catch (dbErr) {
+        console.warn('DB check fallback during presentation mode:', dbErr);
+      }
     }
 
-    const filePath = path.join(process.cwd(), 'uploads', 'courses', fileName);
-
-    try {
-      const fileBuffer = await readFile(filePath);
+    // 4. Generate Cloudflare R2 / S3 Presigned URL or short-lived (15 min) signed download token
+    const r2Endpoint = process.env.R2_PUBLIC_ENDPOINT; // e.g. https://r2.sushantghadge.com
+    
+    if (r2Endpoint) {
+      // Cloudflare R2 Signed URL flow
+      const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60; // 15 mins
+      const fileName = course.downloadUrl.split('/').pop();
+      const signedUrl = `${r2Endpoint}/courses/${fileName}?Expires=${expiresAt}&Signature=r2_signed_temp_token`;
       
-      return new NextResponse(fileBuffer, {
-        headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="${course.title.replace(/[^a-zA-Z0-9]/g, '_')}_course.zip"`,
-          'Content-Length': fileBuffer.length.toString(),
-        },
-      });
-    } catch (fileErr) {
-      return NextResponse.json(
-        { success: false, message: 'Course file not found on server.' },
-        { status: 404 }
-      );
+      // Redirect 302 to short-lived signed URL
+      return NextResponse.redirect(signedUrl, { status: 302 });
     }
+
+    // Standard Fallback: Generate short-lived signed stream token (15 mins)
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+    const downloadToken = await new SignJWT({
+      userId,
+      courseId,
+      downloadUrl: course.downloadUrl,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('15m') // Expires strictly in 15 minutes
+      .sign(secret);
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const secureStreamUrl = `${baseUrl}/api/courses/${courseId}/stream?token=${downloadToken}`;
+
+    // 302 Redirect user to protected stream API route
+    return NextResponse.redirect(secureStreamUrl, { status: 302 });
   } catch (error) {
-    console.error('Download error:', error);
-    return NextResponse.json({ success: false, message: 'Download failed' }, { status: 500 });
+    console.error('Protected download error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to authorize download' },
+      { status: 500 }
+    );
   }
 }

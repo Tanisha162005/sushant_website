@@ -1,6 +1,9 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
+import { PurchaseCard } from './PurchaseCard';
+import { CourseDetails } from './CourseDetails';
+import { MobileStickyBuy } from './MobileStickyBuy';
 
 interface CourseData {
   id: string;
@@ -18,27 +21,8 @@ export const Course = () => {
   const [purchasedCourseIds, setPurchasedCourseIds] = useState<string[]>([]);
   const [purchasedUserId, setPurchasedUserId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const { t } = useLanguage();
-
-  // Countdown timer — resets every 24h
-  const getTimeLeft = useCallback(() => {
-    const now = new Date();
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-    const diff = endOfDay.getTime() - now.getTime();
-    return {
-      hours: Math.floor(diff / (1000 * 60 * 60)),
-      minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-      seconds: Math.floor((diff % (1000 * 60)) / 1000),
-    };
-  }, []);
-
-  useEffect(() => {
-    setTimeLeft(getTimeLeft());
-    const timer = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
-    return () => clearInterval(timer);
-  }, [getTimeLeft]);
+  const purchaseCardRef = useRef<HTMLDivElement>(null);
 
   // Load published courses from backend
   useEffect(() => {
@@ -140,11 +124,13 @@ export const Course = () => {
     setDownloading(null);
   };
 
-  const pad = (n: number) => n.toString().padStart(2, '0');
-
   const getDisplayPrice = (c: CourseData) => c.price / 100;
   const getOriginalPrice = (c: CourseData) => c.originalPrice ? (c.originalPrice / 100) : (c.price / 100) * 2;
-  const getDiscount = (c: CourseData) => Math.round(((getOriginalPrice(c) - getDisplayPrice(c)) / getOriginalPrice(c)) * 100);
+
+  // Use the first course as the featured course
+  const featuredCourse = courses[0] || null;
+  const isFeaturedPurchased = featuredCourse ? purchasedCourseIds.includes(featuredCourse.id) : false;
+  const isFeaturedDownloading = featuredCourse ? downloading === featuredCourse.id : false;
 
   return (
     <>
@@ -157,74 +143,108 @@ export const Course = () => {
             <p className="section-subtitle">{t('courseSubtitle')}</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2.5rem', marginTop: '3rem' }}>
-            {courses.map(course => {
-              const displayPrice = getDisplayPrice(course);
-              const originalPrice = getOriginalPrice(course);
-              const discount = getDiscount(course);
-              const isPurchased = purchasedCourseIds.includes(course.id);
-              const isDownloading = downloading === course.id;
+          {featuredCourse ? (
+            <div className="course-conversion-layout">
+              {/* Left Column — Course Details */}
+              <div className="course-conversion-details">
+                <CourseDetails course={featuredCourse} />
+              </div>
 
-              return (
-                <div key={course.id} className="course-card reveal-scale" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(18,10,36,0.6)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', overflow: 'hidden', padding: 0 }}>
-                  
-                  {/* Thumbnail */}
-                  <div style={{ position: 'relative', height: '220px', backgroundColor: '#1e1b4b', overflow: 'hidden' }}>
-                    {course.imageUrl ? (
-                      <img src={course.imageUrl} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b5e88', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        No Image Available
-                      </div>
-                    )}
-                    <div className="course-badge" style={{ position: 'absolute', top: '15px', right: '15px', margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'linear-gradient(90deg, #a855f7, #ec4899)', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600 }}>
-                      {t('courseBadge')}
-                    </div>
-                  </div>
-
-                  {/* Body */}
-                  <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                    <h3 style={{ fontSize: '1.3rem', marginBottom: '0.75rem', color: '#fff', textAlign: 'left', minHeight: '3rem' }}>{course.title}</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem', flexGrow: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textAlign: 'left' }}>
-                      {course.description || "Course details will be updated soon."}
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: 'auto' }}>
-                      <div className="course-price" style={{ justifyContent: 'flex-start', marginBottom: 0, padding: 0, border: 'none', background: 'transparent' }}>
-                        <span className="current" style={{ fontSize: '1.5rem' }}>₹{displayPrice.toLocaleString()}</span>
-                        <span className="original" style={{ fontSize: '1rem' }}>₹{originalPrice.toLocaleString()}</span>
-                        <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700, background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80' }}>
-                          {discount}% OFF
-                        </span>
-                      </div>
-
-                      {isPurchased ? (
-                        <button onClick={() => handleDownload(course.id)} disabled={isDownloading} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
-                          <span className="btn-icon">{isDownloading ? '⏳' : '📥'}</span> {isDownloading ? 'Downloading...' : 'Download Course'}
-                          <span className="btn-shine"></span>
-                        </button>
-                      ) : (
-                        <button onClick={() => setBuyingCourse(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
-                          <span className="btn-icon">🚀</span> {t('enrollNow')}
-                          <span className="btn-shine"></span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {courses.length === 0 && (
+              {/* Right Column — Purchase Card (sticky on desktop) */}
+              <div ref={purchaseCardRef}>
+                <PurchaseCard
+                  course={featuredCourse}
+                  isPurchased={isFeaturedPurchased}
+                  isDownloading={isFeaturedDownloading}
+                  onBuyClick={() => setBuyingCourse(featuredCourse)}
+                  onDownloadClick={() => handleDownload(featuredCourse.id)}
+                />
+              </div>
+            </div>
+          ) : (
             <div style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '24px', marginTop: '2rem' }}>
               No courses available at the moment.
+            </div>
+          )}
+
+          {/* Additional courses below the featured one */}
+          {courses.length > 1 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2.5rem', marginTop: '4rem' }}>
+              {courses.slice(1).map(course => {
+                const displayPrice = getDisplayPrice(course);
+                const originalPrice = getOriginalPrice(course);
+                const discount = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+                const isPurchased = purchasedCourseIds.includes(course.id);
+                const isDownloading = downloading === course.id;
+
+                return (
+                  <div key={course.id} className="course-card reveal-scale" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'rgba(18,10,36,0.6)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', overflow: 'hidden', padding: 0 }}>
+                    
+                    {/* Thumbnail */}
+                    <div style={{ position: 'relative', height: '220px', backgroundColor: '#1e1b4b', overflow: 'hidden' }}>
+                      {course.imageUrl ? (
+                        <img src={course.imageUrl} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b5e88', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          No Image Available
+                        </div>
+                      )}
+                      <div className="course-badge" style={{ position: 'absolute', top: '15px', right: '15px', margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', background: 'linear-gradient(90deg, #a855f7, #ec4899)', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        {t('courseBadge')}
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                      <h3 style={{ fontSize: '1.3rem', marginBottom: '0.75rem', color: '#fff', textAlign: 'left', minHeight: '3rem' }}>{course.title}</h3>
+                      <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.5rem', flexGrow: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textAlign: 'left' }}>
+                        {course.description || "Course details will be updated soon."}
+                      </p>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: 'auto' }}>
+                        <div className="course-price" style={{ justifyContent: 'flex-start', marginBottom: 0, padding: 0, border: 'none', background: 'transparent' }}>
+                          <span className="current" style={{ fontSize: '1.5rem' }}>₹{displayPrice.toLocaleString()}</span>
+                          <span className="original" style={{ fontSize: '1rem' }}>₹{originalPrice.toLocaleString()}</span>
+                          <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700, background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80' }}>
+                            {discount}% OFF
+                          </span>
+                        </div>
+
+                        {isPurchased ? (
+                          <button onClick={() => handleDownload(course.id)} disabled={isDownloading} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
+                            <span className="btn-icon">{isDownloading ? '⏳' : '📥'}</span> {isDownloading ? 'Downloading...' : 'Download Course'}
+                            <span className="btn-shine"></span>
+                          </button>
+                        ) : (
+                          <button onClick={() => setBuyingCourse(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
+                            <span className="btn-icon">🚀</span> {t('enrollNow')}
+                            <span className="btn-shine"></span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       </section>
 
-      {/* Payment Modal */}
+      {/* Mobile Sticky CTA — only for featured course */}
+      {featuredCourse && (
+        <MobileStickyBuy
+          course={featuredCourse}
+          isPurchased={isFeaturedPurchased}
+          isDownloading={isFeaturedDownloading}
+          isBuying={buyingCourse !== null}
+          onBuyClick={() => setBuyingCourse(featuredCourse)}
+          onDownloadClick={() => handleDownload(featuredCourse.id)}
+          purchaseCardRef={purchaseCardRef}
+        />
+      )}
+
+      {/* Payment Modal — PRESERVED EXACTLY from original */}
       {buyingCourse && (
         <div className="payment-overlay active" style={{ display: 'flex' }}>
           <div className="payment-modal active">

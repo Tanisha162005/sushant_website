@@ -9,7 +9,6 @@ import { Testimonials } from '@/components/Testimonials';
 import { FAQ } from '@/components/FAQ';
 import { Footer } from '@/components/Footer';
 import { ClientSetup } from '@/components/ClientSetup';
-import { FloatingCTA } from '@/components/FloatingCTA';
 import { FloatingElements } from '@/components/FloatingElements';
 import { ComingSoon } from '@/components/ComingSoon';
 import { shouldShowWebsite } from '@/lib/site-mode';
@@ -22,6 +21,9 @@ import { shouldShowWebsite } from '@/lib/site-mode';
  *   - Full website when WEBSITE_LIVE is "true" or request is from the app subdomain
  *
  * To launch the full site, set WEBSITE_LIVE=true in .env.local and redeploy.
+ *
+ * Section order optimized for course conversions:
+ *   Hero → Video (engage) → Course (convert) → About (trust) → Brands → Testimonials → FAQ → Footer
  */
 export default async function Home() {
   const headersList = await headers();
@@ -42,14 +44,13 @@ export default async function Home() {
       <div className="bg-glow bg-glow-2"></div>
       <div className="bg-glow bg-glow-3"></div>
       
-      <About />
       <VideoSection />
       <Course />
+      <About />
       <Brands />
       <Testimonials />
       <FAQ />
       <Footer />
-      <FloatingCTA />
     </div>
   );
 }

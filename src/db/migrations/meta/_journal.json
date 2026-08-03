@@ -8,6 +8,13 @@
       "when": 1783686209360,
       "tag": "0000_rich_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785779138636,
+      "tag": "0001_silly_caretaker",
+      "breakpoints": true
     }
   ]
 }
