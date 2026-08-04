@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { testConnection } from '@/lib/r2-upload';
-import { R2_BUCKET_NAME } from '@/lib/r2';
+import { getR2BucketName } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +18,15 @@ export async function GET() {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown R2 connection error';
     const details = (error as { details?: unknown })?.details || null;
+    let bucketName = 'unknown';
+    try {
+      bucketName = getR2BucketName();
+    } catch { /* ignore env error */ }
+
     return NextResponse.json(
       {
         success: false,
-        bucket: R2_BUCKET_NAME,
+        bucket: bucketName,
         error: message,
         details,
       },

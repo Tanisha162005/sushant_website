@@ -3,9 +3,10 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   HeadBucketCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { r2Client, R2_BUCKET_NAME } from './r2';
+import { getR2Client, getR2BucketName } from './r2';
 import {
   R2ConnectionError,
   R2UploadError,
@@ -143,14 +144,16 @@ export function shouldUsePresignedUpload(mimeType: string): boolean {
  * Verify R2 connection by checking if the bucket exists.
  */
 export async function testConnection(): Promise<{ success: boolean; bucket: string }> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
   try {
-    await r2Client.send(
-      new HeadBucketCommand({ Bucket: R2_BUCKET_NAME })
+    await client.send(
+      new HeadBucketCommand({ Bucket: bucketName })
     );
-    return { success: true, bucket: R2_BUCKET_NAME };
+    return { success: true, bucket: bucketName };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new R2ConnectionError(`Failed to connect to R2 bucket "${R2_BUCKET_NAME}"`, {
+    throw new R2ConnectionError(`Failed to connect to R2 bucket "${bucketName}"`, {
       originalError: message,
     });
   }
@@ -178,11 +181,13 @@ export async function uploadFile(
 
   const objectKey = buildObjectKey(folder, getAssetFolder(mimeType), originalFilename);
   const checksum = createHash('sha256').update(buffer).digest('hex');
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
 
   try {
-    const response = await r2Client.send(
+    const response = await client.send(
       new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
+        Bucket: bucketName,
         Key: objectKey,
         Body: buffer,
         ContentType: mimeType,
@@ -225,14 +230,16 @@ export async function createPresignedUploadUrl(
   mimeType: string,
   expiresInSec: number = 1800
 ): Promise<{ presignedUrl: string; objectKey: string; expiresIn: number }> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
   try {
     const command = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
+      Bucket: bucketName,
       Key: objectKey,
       ContentType: mimeType,
     });
 
-    const presignedUrl = await getSignedUrl(r2Client, command, {
+    const presignedUrl = await getSignedUrl(client, command, {
       expiresIn: expiresInSec,
     });
 
@@ -259,21 +266,23 @@ export async function generateSignedDownloadUrl(
   objectKey: string,
   expiresInSec: number = 600
 ): Promise<string> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
   try {
     const command = new HeadObjectCommand({
-      Bucket: R2_BUCKET_NAME,
+      Bucket: bucketName,
       Key: objectKey,
     });
 
     // First verify the object exists
-    await r2Client.send(command);
+    await client.send(command);
 
-    const getCommand = new (await import('@aws-sdk/client-s3')).GetObjectCommand({
-      Bucket: R2_BUCKET_NAME,
+    const getCommand = new GetObjectCommand({
+      Bucket: bucketName,
       Key: objectKey,
     });
 
-    const signedUrl = await getSignedUrl(r2Client, getCommand, {
+    const signedUrl = await getSignedUrl(client, getCommand, {
       expiresIn: expiresInSec,
     });
 
@@ -295,10 +304,12 @@ export async function generateSignedDownloadUrl(
  * Delete an object from R2 by its key.
  */
 export async function deleteFile(objectKey: string): Promise<void> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
   try {
-    await r2Client.send(
+    await client.send(
       new DeleteObjectCommand({
-        Bucket: R2_BUCKET_NAME,
+        Bucket: bucketName,
         Key: objectKey,
       })
     );
@@ -317,10 +328,12 @@ export async function deleteFile(objectKey: string): Promise<void> {
  * Get object metadata (content type, size, etc.) from R2.
  */
 export async function getObjectMetadata(objectKey: string) {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
   try {
-    const response = await r2Client.send(
+    const response = await client.send(
       new HeadObjectCommand({
-        Bucket: R2_BUCKET_NAME,
+        Bucket: bucketName,
         Key: objectKey,
       })
     );
@@ -345,10 +358,12 @@ export async function getObjectMetadata(objectKey: string) {
  * Returns true if found, false if not.
  */
 export async function objectExists(objectKey: string): Promise<boolean> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
   try {
-    await r2Client.send(
+    await client.send(
       new HeadObjectCommand({
-        Bucket: R2_BUCKET_NAME,
+        Bucket: bucketName,
         Key: objectKey,
       })
     );
