@@ -50,7 +50,7 @@ export function R2FileUpload({
     resetState();
 
     if (file.size > maxSizeMB * 1024 * 1024) {
-      const err = `File size (${Math.round(file.size / (1024 * 1024))} MB) exceeds maximum allowed (${maxSizeMB} MB)`;
+      const err = `File size (${(file.size / (1024 * 1024 * 1024)).toFixed(2)} GB) exceeds maximum allowed (${maxSizeMB / 1024} GB)`;
       setError(err);
       if (onUploadError) onUploadError(err);
       return;
@@ -64,7 +64,6 @@ export function R2FileUpload({
       reader.readAsDataURL(file);
     }
 
-    // Immediately trigger upload workflow
     startUpload(file);
   };
 
@@ -73,17 +72,122 @@ export function R2FileUpload({
     setError(null);
     setProgress(0);
 
-    const isLarge = assetType === 'zip' || assetType === 'video';
+    const SINGLE_PART_LIMIT = 5 * 1024 * 1024 * 1024; // 5 GB limit for single PUT
 
-    if (isLarge) {
-      // ── Path B: Direct Cloudflare R2 Presigned Upload ─────────────
+    if (file.size > SINGLE_PART_LIMIT) {
+      // ── S3 Chunked Multipart Upload for Multi-GB files (>5 GB, e.g. 11.8 GB ZIP) ──
+      try {
+        const CHUNK_SIZE = 20 * 1024 * 1024; // 20 MB chunks
+        const initRes = await fetch('/api/upload/multipart/init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+            courseSlug,
+            chunkSize: CHUNK_SIZE,
+          }),
+        });
+
+        const initData = await initRes.json();
+        if (!initRes.ok || !initData.success) {
+          throw new Error(initData.error?.message || initData.message || 'Failed to initialize multipart upload');
+        }
+
+        const { uploadId, objectKey, partUrls, totalParts } = initData.data;
+        const uploadedParts: { ETag: string; PartNumber: number }[] = [];
+        let bytesUploaded = 0;
+
+        for (let i = 0; i < totalParts; i++) {
+          const partNumber = i + 1;
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+          const partUrl = partUrls[i];
+
+          const etag = await new Promise<string>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            activeXhrRef.current = xhr;
+
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                const currentUploaded = bytesUploaded + e.loaded;
+                const percent = Math.round((currentUploaded / file.size) * 100);
+                setProgress(Math.min(percent, 99));
+              }
+            };
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                const rawETag = xhr.getResponseHeader('ETag') || xhr.getResponseHeader('etag') || `part-${partNumber}`;
+                resolve(rawETag.replace(/^"|"$/g, ''));
+              } else {
+                reject(new Error(`Part ${partNumber} upload failed with status ${xhr.status}`));
+              }
+            };
+
+            xhr.onerror = () => reject(new Error(`Network error during upload of part ${partNumber}`));
+            xhr.onabort = () => reject(new Error('Upload cancelled'));
+
+            xhr.open('PUT', partUrl, true);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.send(chunk);
+          });
+
+          bytesUploaded += chunk.size;
+          uploadedParts.push({ ETag: etag, PartNumber: partNumber });
+        }
+
+        activeXhrRef.current = null;
+
+        // Complete multipart upload
+        const completeRes = await fetch('/api/upload/multipart/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            objectKey,
+            uploadId,
+            parts: uploadedParts,
+            filename: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+            assetType,
+          }),
+        });
+
+        const completeData = await completeRes.json();
+        if (!completeRes.ok || !completeData.success) {
+          throw new Error(completeData.error?.message || 'Failed to finalize multipart upload');
+        }
+
+        setUploading(false);
+        setSuccess(true);
+        setProgress(100);
+        onUploadSuccess({
+          objectKey,
+          filename: file.name,
+          mimeType: file.type || 'application/zip',
+          size: file.size,
+        });
+      } catch (err: unknown) {
+        activeXhrRef.current = null;
+        setUploading(false);
+        const errMsg = err instanceof Error ? err.message : 'Multipart upload failed';
+        if (errMsg !== 'Upload cancelled') {
+          setError(errMsg);
+          if (onUploadError) onUploadError(errMsg);
+        }
+      }
+    } else {
+      // ── Direct Cloudflare R2 Presigned Upload for files <= 5 GB ──
       try {
         const presignRes = await fetch('/api/upload/presign', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             filename: file.name,
-            mimeType: file.type || 'application/octet-stream',
+            mimeType: file.type || (assetType === 'thumbnail' ? 'image/png' : 'application/octet-stream'),
             size: file.size,
             courseSlug,
           }),
@@ -96,7 +200,6 @@ export function R2FileUpload({
 
         const { presignedUrl, objectKey } = presignData.data;
 
-        // Perform direct PUT upload to Cloudflare R2 with progress tracking
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           activeXhrRef.current = xhr;
@@ -126,7 +229,6 @@ export function R2FileUpload({
 
         activeXhrRef.current = null;
 
-        // Confirm metadata with backend
         const confirmRes = await fetch('/api/upload/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -150,67 +252,9 @@ export function R2FileUpload({
         onUploadSuccess({
           objectKey,
           filename: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'application/octet-stream',
           size: file.size,
         });
-      } catch (err: unknown) {
-        activeXhrRef.current = null;
-        setUploading(false);
-        const errMsg = err instanceof Error ? err.message : 'Upload failed';
-        if (errMsg !== 'Upload cancelled') {
-          setError(errMsg);
-          if (onUploadError) onUploadError(errMsg);
-        }
-      }
-    } else {
-      // ── Path A: Server-Side Upload for small files ───────────────
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('courseSlug', courseSlug);
-        formData.append('assetType', assetType);
-
-        const xhr = new XMLHttpRequest();
-        activeXhrRef.current = xhr;
-
-        await new Promise<void>((resolve, reject) => {
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const percent = Math.round((e.loaded / e.total) * 100);
-              setProgress(percent);
-            }
-          };
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              const res = JSON.parse(xhr.responseText);
-              if (res.success) {
-                setSuccess(true);
-                setProgress(100);
-                onUploadSuccess({
-                  objectKey: res.data.objectKey,
-                  filename: res.data.filename,
-                  mimeType: res.data.mimeType,
-                  size: res.data.size,
-                });
-                resolve();
-              } else {
-                reject(new Error(res.error?.message || res.message || 'Server upload failed'));
-              }
-            } else {
-              reject(new Error(`Server returned HTTP ${xhr.status}`));
-            }
-          };
-
-          xhr.onerror = () => reject(new Error('Network error during upload'));
-          xhr.onabort = () => reject(new Error('Upload cancelled'));
-
-          xhr.open('POST', '/api/upload', true);
-          xhr.send(formData);
-        });
-
-        activeXhrRef.current = null;
-        setUploading(false);
       } catch (err: unknown) {
         activeXhrRef.current = null;
         setUploading(false);
@@ -233,7 +277,7 @@ export function R2FileUpload({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
       <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#a89ec8' }}>
-        {label} <span style={{ fontSize: '0.75rem', color: '#6b5e88' }}>(Max {maxSizeMB >= 1000 ? `${maxSizeMB / 1000} GB` : `${maxSizeMB} MB`})</span>
+        {label} <span style={{ fontSize: '0.75rem', color: '#6b5e88' }}>(Max {maxSizeMB >= 1000 ? `${(maxSizeMB / 1000).toFixed(0)} GB` : `${maxSizeMB} MB`})</span>
       </label>
 
       <div
@@ -276,13 +320,13 @@ export function R2FileUpload({
         {selectedFile ? (
           <div style={{ textAlign: 'center', width: '100%' }}>
             <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: success ? '#4ade80' : error ? '#f87171' : '#eef0f6' }}>
-              {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)
+              {selectedFile.name} ({(selectedFile.size / (1024 * 1024 * (selectedFile.size > 1024*1024*1024 ? 1024 : 1))).toFixed(1)} {selectedFile.size > 1024*1024*1024 ? 'GB' : 'MB'})
             </p>
 
             {uploading && (
               <div style={{ marginTop: '0.75rem', width: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#D8B4FE', marginBottom: '0.25rem' }}>
-                  <span>{assetType === 'zip' || assetType === 'video' ? 'Uploading directly to Cloudflare R2...' : 'Uploading...'}</span>
+                  <span>{selectedFile.size > 5 * 1024 * 1024 * 1024 ? 'Chunked Multipart Uploading to R2...' : 'Uploading directly to Cloudflare R2...'}</span>
                   <span>{progress}%</span>
                 </div>
                 <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>

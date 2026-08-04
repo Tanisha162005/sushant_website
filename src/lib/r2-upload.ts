@@ -4,6 +4,10 @@ import {
   HeadObjectCommand,
   HeadBucketCommand,
   GetObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getR2Client, getR2BucketName } from './r2';
@@ -32,12 +36,12 @@ const MIME_TO_ASSET_FOLDER: Record<string, string> = {
   'video/quicktime': 'videos',
 };
 
-/** Maximum file sizes in bytes per category */
+/** Maximum file sizes in bytes per category (ZIP & Video support up to 50 GB via Multipart Upload) */
 const MAX_FILE_SIZES: Record<string, number> = {
-  images: 10 * 1024 * 1024,         // 10 MB
-  pdfs: 50 * 1024 * 1024,           // 50 MB
-  zip: 5 * 1024 * 1024 * 1024,      // 5 GB
-  videos: 5 * 1024 * 1024 * 1024,   // 5 GB
+  images: 10 * 1024 * 1024,          // 10 MB
+  pdfs: 50 * 1024 * 1024,            // 50 MB
+  zip: 50 * 1024 * 1024 * 1024,      // 50 GB (supports 11.8 GB+ files)
+  videos: 50 * 1024 * 1024 * 1024,   // 50 GB
 };
 
 /** All allowed MIME types */
@@ -129,13 +133,8 @@ export function validateFile(mimeType: string, size: number): void {
   }
 }
 
-/**
- * Determine if a file should use presigned URL upload (large files)
- * or server-side upload (small files).
- */
 export function shouldUsePresignedUpload(mimeType: string): boolean {
-  const folder = MIME_TO_ASSET_FOLDER[mimeType];
-  return folder === 'zip' || folder === 'videos';
+  return true; // All file uploads use direct presigned R2 URLs to avoid server HTTP 413 limits
 }
 
 // ─── Connection Test ───────────────────────────────────────────────────────
@@ -372,3 +371,107 @@ export async function objectExists(objectKey: string): Promise<boolean> {
     return false;
   }
 }
+
+// ─── S3 Multipart Upload (Files > 5 GB up to 50 GB+) ───────────────────────
+
+/**
+ * Initiate an S3 Multipart Upload session on Cloudflare R2.
+ * Returns the uploadId and objectKey.
+ */
+export async function initiateMultipartUpload(
+  objectKey: string,
+  mimeType: string
+): Promise<{ uploadId: string; objectKey: string }> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
+  try {
+    const command = new CreateMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      ContentType: mimeType,
+    });
+    const res = await client.send(command);
+    if (!res.UploadId) throw new Error('Failed to obtain UploadId from Cloudflare R2');
+
+    logger.info(`[R2 Multipart] Initiated uploadId=${res.UploadId} for ${objectKey}`);
+    return { uploadId: res.UploadId, objectKey };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new R2UploadError(`Failed to initiate multipart upload`, { objectKey, originalError: message });
+  }
+}
+
+/**
+ * Generate a presigned PUT URL for a specific chunk part of a multipart upload.
+ */
+export async function createPresignedPartUrl(
+  objectKey: string,
+  uploadId: string,
+  partNumber: number,
+  expiresInSec: number = 3600
+): Promise<string> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
+  try {
+    const command = new UploadPartCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      UploadId: uploadId,
+      PartNumber: partNumber,
+    });
+    return await getSignedUrl(client, command, { expiresIn: expiresInSec });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new R2UploadError(`Failed to generate presigned part URL for part ${partNumber}`, { objectKey, originalError: message });
+  }
+}
+
+/**
+ * Finalize an S3 Multipart Upload session after all chunk parts are uploaded.
+ */
+export async function completeMultipartUpload(
+  objectKey: string,
+  uploadId: string,
+  parts: { ETag: string; PartNumber: number }[]
+): Promise<{ objectKey: string; etag?: string }> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
+  try {
+    const command = new CompleteMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: parts.sort((a, b) => a.PartNumber - b.PartNumber),
+      },
+    });
+
+    const res = await client.send(command);
+    const etag = res.ETag ? res.ETag.replace(/^"|"$/g, '') : undefined;
+    logger.info(`[R2 Multipart] Completed ${objectKey} (ETag: ${etag})`);
+    return { objectKey, etag };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new R2UploadError(`Failed to complete multipart upload`, { objectKey, originalError: message });
+  }
+}
+
+/**
+ * Abort an incomplete S3 Multipart Upload session.
+ */
+export async function abortMultipartUpload(objectKey: string, uploadId: string): Promise<void> {
+  const bucketName = getR2BucketName();
+  const client = getR2Client();
+  try {
+    const command = new AbortMultipartUploadCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+      UploadId: uploadId,
+    });
+    await client.send(command);
+    logger.info(`[R2 Multipart] Aborted uploadId=${uploadId} for ${objectKey}`);
+  } catch (err) {
+    logger.warn(`Failed to abort multipart upload for ${objectKey}:`, err);
+  }
+}
+

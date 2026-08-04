@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { db } from '@/db';
-import { courses, payments, courseAssets } from '@/db/schema';
+import { courses, payments, courseAssets, courseLessons } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { MOCK_COURSES } from '@/lib/mockDb';
 import { generateSignedDownloadUrl } from '@/lib/r2-upload';
 import { logger } from '@/lib/logger';
 
@@ -13,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id: courseId } = await params;
 
-    // 1. Authenticate user from HTTP-only user_token cookie or query param
+    // 1. Authenticate user
     let userId: string | null = null;
     const token = req.cookies.get('user_token')?.value;
 
@@ -22,60 +21,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
         const { payload } = await jwtVerify(token, secret);
         userId = payload.userId as string;
-      } catch (err) {
+      } catch {
         logger.warn('Invalid user_token cookie during download verification');
       }
     }
 
-    // Fallback to query param for guest checkout / presentation users
     if (!userId) {
       userId = req.nextUrl.searchParams.get('userId');
     }
 
     if (!userId) {
       return NextResponse.json(
-        { success: false, message: 'Authentication or valid purchase session required' },
+        { success: false, message: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // 2. Locate course and determine object key
-    let objectKey: string | null = null;
-
-    // First check DB courseAssets table for zip asset
-    try {
-      const dbAssets = await db
-        .select()
-        .from(courseAssets)
-        .where(and(eq(courseAssets.courseId, courseId), eq(courseAssets.assetType, 'zip')))
-        .limit(1);
-
-      if (dbAssets.length > 0) {
-        objectKey = dbAssets[0].objectKey;
-      }
-    } catch (dbErr) {
-      logger.warn('DB courseAssets query fallback:', dbErr);
-    }
-
-    // Fallback to course record / MOCK_COURSES
-    if (!objectKey) {
-      const mockCourse = MOCK_COURSES.find((c) => c.id === courseId);
-      if (mockCourse?.downloadUrl && !mockCourse.downloadUrl.startsWith('/')) {
-        objectKey = mockCourse.downloadUrl;
-      } else if (mockCourse) {
-        // Sample R2 fallback key for presentation course
-        objectKey = `courses/foundation-course/zip/foundation-masterclass.zip`;
-      }
-    }
-
-    if (!objectKey) {
-      return NextResponse.json(
-        { success: false, message: 'Course download content unavailable' },
-        { status: 404 }
-      );
-    }
-
-    // 3. Verify purchase in database (skipped for temp presentation user)
+    // 2. Verify purchase
     if (userId !== 'temp-user') {
       try {
         const purchaseRecord = await db
@@ -91,11 +53,83 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           );
         }
       } catch (dbErr) {
-        logger.warn('DB purchase check fallback during presentation mode:', dbErr);
+        logger.warn('DB purchase check error:', dbErr);
       }
     }
 
-    // 4. Generate Cloudflare R2 Presigned Download URL (expires strictly in 10 minutes / 600s)
+    // 3. Determine what to download
+    const lessonId = req.nextUrl.searchParams.get('lessonId');
+    const assetType = req.nextUrl.searchParams.get('assetType');
+    let objectKey: string | null = null;
+    let downloadFilename: string | null = null;
+
+    if (lessonId) {
+      // Download a specific lesson video
+      const lesson = await db
+        .select()
+        .from(courseLessons)
+        .where(and(eq(courseLessons.id, lessonId), eq(courseLessons.courseId, courseId)))
+        .limit(1);
+
+      if (lesson.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'Lesson not found' },
+          { status: 404 }
+        );
+      }
+
+      objectKey = lesson[0].videoKey;
+      downloadFilename = `${lesson[0].title}.mp4`;
+    } else if (assetType === 'pdf' || assetType === 'zip') {
+      // Download workbook PDF or resources ZIP
+      const asset = await db
+        .select()
+        .from(courseAssets)
+        .where(and(eq(courseAssets.courseId, courseId), eq(courseAssets.assetType, assetType)))
+        .limit(1);
+
+      if (asset.length === 0) {
+        return NextResponse.json(
+          { success: false, message: `${assetType.toUpperCase()} asset not found` },
+          { status: 404 }
+        );
+      }
+
+      objectKey = asset[0].objectKey;
+      downloadFilename = asset[0].filename;
+    } else {
+      // Backward compatibility: default to ZIP download
+      const zipAsset = await db
+        .select()
+        .from(courseAssets)
+        .where(and(eq(courseAssets.courseId, courseId), eq(courseAssets.assetType, 'zip')))
+        .limit(1);
+
+      if (zipAsset.length > 0) {
+        objectKey = zipAsset[0].objectKey;
+        downloadFilename = zipAsset[0].filename;
+      } else {
+        // Fallback: check course.downloadUrl for old-style courses
+        const courseRecord = await db
+          .select()
+          .from(courses)
+          .where(eq(courses.id, courseId))
+          .limit(1);
+
+        if (courseRecord.length > 0 && courseRecord[0].downloadUrl && !courseRecord[0].downloadUrl.startsWith('/')) {
+          objectKey = courseRecord[0].downloadUrl;
+        }
+      }
+    }
+
+    if (!objectKey) {
+      return NextResponse.json(
+        { success: false, message: 'Download content unavailable' },
+        { status: 404 }
+      );
+    }
+
+    // 4. Generate 10-minute presigned R2 download URL
     let signedUrl: string;
     try {
       signedUrl = await generateSignedDownloadUrl(objectKey, 600);
@@ -112,11 +146,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({
         success: true,
         signedUrl,
+        filename: downloadFilename,
         expiresIn: 600,
       });
     }
 
-    // 302 Redirect user directly to temporary Cloudflare R2 signed URL
     return NextResponse.redirect(signedUrl, { status: 302 });
   } catch (error) {
     logger.error('Protected download error:', error);

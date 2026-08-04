@@ -3,12 +3,14 @@ import { payments, courses } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { razorpay } from '@/lib/razorpay';
 import crypto from 'crypto';
-
-import { MOCK_COURSES } from '@/lib/mockDb';
+import { logger } from '@/lib/logger';
 
 export class PaymentService {
   async createOrder(userId: string, courseId: string) {
-    const course = MOCK_COURSES.find(c => c.id === courseId);
+    // Look up course in PostgreSQL
+    const courseRecords = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+    const course = courseRecords[0];
+    
     if (!course) throw new Error('Course not found');
     
     const amount = course.price;
@@ -19,7 +21,7 @@ export class PaymentService {
       receipt: `receipt_order_${new Date().getTime()}`,
     };
     
-    // Fallback if Razorpay is not configured for presentation
+    // Fallback if Razorpay is not configured for test/local
     let order;
     try {
       order = await razorpay.orders.create(options);
@@ -28,19 +30,36 @@ export class PaymentService {
     }
 
     const paymentRecord = {
-      id: `mock_pay_${new Date().getTime()}`,
+      id: `pay_${Date.now()}`,
       userId,
       courseId,
       amount,
       razorpayOrderId: order.id,
-      status: 'created',
+      status: 'created' as const,
     };
+
+    // Attempt to persist in PostgreSQL if valid user ID is provided
+    if (userId !== 'temp-user') {
+      try {
+        await db.insert(payments).values({
+          userId,
+          courseId,
+          amount,
+          razorpayOrderId: order.id,
+          status: 'created',
+        });
+      } catch (dbErr) {
+        logger.warn('[PaymentService] Failed to insert payment record in DB:', dbErr);
+      }
+    }
 
     return { order, paymentRecord };
   }
 
   async verifyWebhook(body: string, signature: string) {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
+    if (!secret) throw new Error('RAZORPAY_WEBHOOK_SECRET not configured');
+    
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(body)

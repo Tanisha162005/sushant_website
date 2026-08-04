@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, timestamp, pgEnum, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, bigint, timestamp, pgEnum, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'super_admin', 'admin', 'support', 'content_manager', 'finance_manager']);
@@ -149,10 +149,33 @@ export const courseAssets = pgTable('course_assets', {
   uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
 });
 
+// ─── Course Lessons (Multi-Lesson Download Architecture) ──────────────────
+
+export const courseLessons = pgTable('course_lessons', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  videoKey: varchar('video_key', { length: 1024 }).notNull(),
+  duration: integer('duration'),                              // seconds
+  fileSize: bigint('file_size', { mode: 'number' }),          // bytes (bigint for >2GB files)
+  displayOrder: integer('display_order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Relations
 export const coursesRelations = relations(courses, ({ many }) => ({
   modules: many(courseModules),
   assets: many(courseAssets),
+  lessons: many(courseLessons),
+}));
+
+export const courseLessonsRelations = relations(courseLessons, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseLessons.courseId],
+    references: [courses.id],
+  }),
 }));
 
 export const courseAssetsRelations = relations(courseAssets, ({ one }) => ({
