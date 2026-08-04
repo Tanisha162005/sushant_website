@@ -127,7 +127,7 @@ export function R2FileUpload({
               }
             };
 
-            xhr.onerror = () => reject(new Error(`Network error during upload of part ${partNumber}`));
+            xhr.onerror = () => reject(new Error(`Network/CORS error during upload of part ${partNumber}. Check Cloudflare R2 CORS configuration.`));
             xhr.onabort = () => reject(new Error('Upload cancelled'));
 
             xhr.open('PUT', partUrl, true);
@@ -219,7 +219,7 @@ export function R2FileUpload({
             }
           };
 
-          xhr.onerror = () => reject(new Error('Network error during direct R2 upload'));
+          xhr.onerror = () => reject(new Error('Network error (CORS blocked): Check your Cloudflare R2 bucket CORS configuration for PUT requests.'));
           xhr.onabort = () => reject(new Error('Upload cancelled'));
 
           xhr.open('PUT', presignedUrl, true);

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Plus, Trash2, BookOpen, X, Loader2, Check, HardDrive, Image as ImageIcon, FileText, FileArchive, Video as VideoIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Plus, Trash2, BookOpen, X, Loader2, Check, HardDrive, Image as ImageIcon, FileText, FileArchive, Video as VideoIcon, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { R2FileUpload } from '@/components/admin/R2FileUpload';
 import { LessonManager } from '@/components/admin/LessonManager';
 
@@ -21,11 +21,23 @@ interface UploadedAssetMeta {
   size: number;
   assetType: 'thumbnail' | 'pdf' | 'zip';
   filename: string;
-  etag?: string;
+}
+
+interface StagedLesson {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  videoKey: string;
+  fileSize: number;
+  filename: string;
+  uploading: boolean;
+  progress: number;
+  error: string | null;
 }
 
 function formatSize(bytes: number): string {
-  if (bytes === 0) return '0 MB';
+  if (!bytes || bytes === 0) return '0 MB';
   const mb = bytes / (1024 * 1024);
   if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
   return `${mb.toFixed(1)} MB`;
@@ -39,18 +51,22 @@ export default function AdminCoursesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
 
-  // Uploaded R2 Object Keys & Metadata tracking
+  // Uploaded R2 Object Keys & Metadata tracking for course assets
   const [thumbnailKey, setThumbnailKey] = useState<string>('');
   const [pdfKey, setPdfKey] = useState<string>('');
   const [zipKey, setZipKey] = useState<string>('');
   const [assetMetas, setAssetMetas] = useState<UploadedAssetMeta[]>([]);
+
+  // Staged Lesson MP4 Videos during Course Creation
+  const [stagedLessons, setStagedLessons] = useState<StagedLesson[]>([]);
+  const [showOptionalZip, setShowOptionalZip] = useState(false);
 
   const fetchCourses = async () => {
     try {
       const res = await fetch('/api/admin/courses');
       const data = await res.json();
       if (data.success) setAllCourses(data.data);
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     setLoading(false);
   };
 
@@ -70,10 +86,93 @@ export default function AdminCoursesPage() {
     ]);
   };
 
+  // Staged Lesson Handlers
+  const addStagedLesson = () => {
+    const newId = `staged_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    setStagedLessons((prev) => [
+      ...prev,
+      {
+        id: newId,
+        title: `Lesson ${prev.length + 1}`,
+        description: '',
+        duration: '',
+        videoKey: '',
+        fileSize: 0,
+        filename: '',
+        uploading: false,
+        progress: 0,
+        error: null,
+      },
+    ]);
+  };
+
+  const removeStagedLesson = (id: string) => {
+    setStagedLessons((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const updateStagedLesson = (id: string, updates: Partial<StagedLesson>) => {
+    setStagedLessons((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
+  };
+
+  const uploadStagedLessonVideo = async (id: string, file: File, courseTitle: string) => {
+    updateStagedLesson(id, { uploading: true, progress: 0, error: null, filename: file.name });
+    const slug = (courseTitle || 'draft-course').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+
+    try {
+      const presignRes = await fetch('/api/upload/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || 'video/mp4',
+          size: file.size,
+          courseSlug: slug,
+        }),
+      });
+
+      const presignData = await presignRes.json();
+      if (!presignRes.ok || !presignData.success) {
+        throw new Error(presignData.error?.message || presignData.message || 'Failed to generate R2 upload link');
+      }
+
+      const { presignedUrl, objectKey } = presignData.data;
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            updateStagedLesson(id, { progress: Math.round((e.loaded / e.total) * 100) });
+          }
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`)));
+        xhr.onerror = () => reject(new Error('Network error (CORS blocked): Please enable CORS in your Cloudflare R2 bucket settings for PUT requests.'));
+        xhr.open('PUT', presignedUrl, true);
+        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+        xhr.send(file);
+      });
+
+      updateStagedLesson(id, { uploading: false, progress: 100, videoKey: objectKey, fileSize: file.size });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      updateStagedLesson(id, { uploading: false, error: msg });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitting(true);
 
+    // Verify all staged lessons with video uploads are completed
+    const incomplete = stagedLessons.filter((l) => l.uploading || (l.title && !l.videoKey));
+    if (incomplete.length > 0) {
+      if (incomplete.some((l) => l.uploading)) {
+        alert('Please wait for all lesson MP4 videos to finish uploading to Cloudflare R2 before submitting.');
+        return;
+      }
+      alert('Please upload an MP4 video file for each added lesson, or remove incomplete lesson blocks.');
+      return;
+    }
+
+    setSubmitting(true);
     const form = e.currentTarget;
     const formData = new FormData(form);
 
@@ -89,6 +188,21 @@ export default function AdminCoursesPage() {
     if (zipKey) formData.set('zipObjectKey', zipKey);
     if (pdfKey) formData.set('pdfObjectKey', pdfKey);
 
+    // Include staged lessons payload
+    if (stagedLessons.length > 0) {
+      const formattedLessons = stagedLessons
+        .filter((l) => l.videoKey)
+        .map((l, index) => ({
+          title: l.title.trim() || `Lesson ${index + 1}`,
+          description: l.description.trim() || null,
+          videoKey: l.videoKey,
+          duration: l.duration ? Math.round(parseFloat(l.duration) * 60) : null, // convert mins to seconds
+          fileSize: l.fileSize,
+          displayOrder: index + 1,
+        }));
+      formData.set('lessons', JSON.stringify(formattedLessons));
+    }
+
     try {
       const res = await fetch('/api/admin/courses', { method: 'POST', body: formData });
       const data = await res.json();
@@ -98,9 +212,10 @@ export default function AdminCoursesPage() {
         setPdfKey('');
         setZipKey('');
         setAssetMetas([]);
+        setStagedLessons([]);
+        setShowOptionalZip(false);
         form.reset();
         fetchCourses();
-        // Expand the new course for lesson management
         if (data.data?.id) setExpandedCourseId(data.data.id);
       } else {
         alert(data.message || 'Failed to create course');
@@ -135,7 +250,8 @@ export default function AdminCoursesPage() {
   const thumbnailSize = assetMetas.filter((a) => a.assetType === 'thumbnail').reduce((acc, a) => acc + a.size, 0);
   const pdfSize = assetMetas.filter((a) => a.assetType === 'pdf').reduce((acc, a) => acc + a.size, 0);
   const zipSize = assetMetas.filter((a) => a.assetType === 'zip').reduce((acc, a) => acc + a.size, 0);
-  const totalStorage = thumbnailSize + pdfSize + zipSize;
+  const lessonsSize = stagedLessons.reduce((acc, l) => acc + (l.fileSize || 0), 0);
+  const totalStorage = thumbnailSize + pdfSize + zipSize + lessonsSize;
 
   const statusColor: Record<string, { bg: string; text: string; border: string }> = {
     published: { bg: 'rgba(74,222,128,0.08)', text: '#4ade80', border: 'rgba(74,222,128,0.2)' },
@@ -167,9 +283,15 @@ export default function AdminCoursesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#eef0f6', marginBottom: '0.25rem' }}>Courses</h2>
-          <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Manage courses with multi-lesson video downloads</p>
+          <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Create & manage courses with multiple MP4 lesson downloads</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} style={{
+        <button onClick={() => {
+          setShowForm(!showForm);
+          if (!showForm && stagedLessons.length === 0) {
+            // Automatically start with one lesson block for convenience
+            addStagedLesson();
+          }
+        }} style={{
           display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem',
           background: showForm ? 'rgba(239,68,68,0.1)' : 'linear-gradient(135deg, #A855F7, #7C3AED)',
           border: showForm ? '1px solid rgba(239,68,68,0.2)' : 'none', borderRadius: '10px',
@@ -182,7 +304,7 @@ export default function AdminCoursesPage() {
       </div>
 
       {/* Storage Summary */}
-      {assetMetas.length > 0 && (
+      {(assetMetas.length > 0 || stagedLessons.some(l => l.fileSize > 0)) && (
         <div style={{
           background: 'linear-gradient(145deg, rgba(168,85,247,0.06) 0%, rgba(18,10,36,0.8) 100%)',
           border: '1px solid rgba(168,85,247,0.2)', borderRadius: '16px', padding: '1.25rem',
@@ -195,7 +317,8 @@ export default function AdminCoursesPage() {
             {[
               { icon: <ImageIcon style={{ width: 14, height: 14, color: '#A855F7' }} />, label: 'Thumbnail', size: thumbnailSize },
               { icon: <FileText style={{ width: 14, height: 14, color: '#38BDF8' }} />, label: 'PDF Workbook', size: pdfSize },
-              { icon: <FileArchive style={{ width: 14, height: 14, color: '#F59E0B' }} />, label: 'Resources ZIP', size: zipSize },
+              { icon: <VideoIcon style={{ width: 14, height: 14, color: '#EC4899' }} />, label: `Lesson Videos (${stagedLessons.filter(l => l.videoKey).length})`, size: lessonsSize },
+              ...(zipSize > 0 ? [{ icon: <FileArchive style={{ width: 14, height: 14, color: '#F59E0B' }} />, label: 'Resources ZIP', size: zipSize }] : []),
             ].map(({ icon, label, size }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#a89ec8' }}>{icon} {label}</div>
@@ -216,92 +339,311 @@ export default function AdminCoursesPage() {
           background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
           border: '1px solid rgba(168,85,247,0.15)', borderRadius: '16px', padding: '1.5rem',
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#eef0f6', marginBottom: '1.25rem' }}>Create New Course</h3>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={labelStyle}>Course Title *</label>
-              <input name="title" required placeholder="e.g. Content Creation Masterclass" style={inputStyle}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Description *</label>
-              <textarea name="description" required rows={3} placeholder="Describe what users will learn..."
-                style={{ ...inputStyle, resize: 'vertical' }}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#eef0f6', marginBottom: '1.25rem' }}>Create New Course & Upload Lessons</h3>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Basic Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={labelStyle}>Price (₹) *</label>
-                <input name="price" type="number" required min="0" step="0.01" placeholder="4999" style={inputStyle}
+                <label style={labelStyle}>Course Title *</label>
+                <input name="title" id="course-title-input" required placeholder="e.g. Content Creation Masterclass" style={inputStyle}
                   onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
                   onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
               </div>
+
               <div>
-                <label style={labelStyle}>Original Price (₹)</label>
-                <input name="originalPrice" type="number" min="0" step="0.01" placeholder="9999" style={inputStyle}
+                <label style={labelStyle}>Description *</label>
+                <textarea name="description" required rows={3} placeholder="Describe what users will learn..."
+                  style={{ ...inputStyle, resize: 'vertical' }}
                   onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
                   onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Price (₹) *</label>
+                  <input name="price" type="number" required min="0" step="0.01" placeholder="4999" style={inputStyle}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Original Price (₹)</label>
+                  <input name="originalPrice" type="number" min="0" step="0.01" placeholder="9999" style={inputStyle}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Category</label>
+                  <input name="category" placeholder="e.g. Video Editing" style={inputStyle}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                </div>
+              </div>
+
               <div>
-                <label style={labelStyle}>Category</label>
-                <input name="category" placeholder="e.g. Video Editing" style={inputStyle}
-                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.5)'}
-                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                <label style={labelStyle}>Status</label>
+                <select name="status" defaultValue="published" style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value="published" style={{ background: '#120A24' }}>Published (visible to users)</option>
+                  <option value="draft" style={{ background: '#120A24' }}>Draft</option>
+                </select>
               </div>
             </div>
 
-            <div>
-              <label style={labelStyle}>Status</label>
-              <select name="status" defaultValue="published" style={{ ...inputStyle, cursor: 'pointer' }}>
-                <option value="published" style={{ background: '#120A24' }}>Published (visible to users)</option>
-                <option value="draft" style={{ background: '#120A24' }}>Draft</option>
-              </select>
+            {/* Course Cover & Workbook */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.25rem' }}>
+              <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#D8B4FE', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ImageIcon style={{ width: 16, height: 16 }} /> Course Cover & Workbook
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <R2FileUpload
+                  label="Course Thumbnail (Image)"
+                  accept="image/*"
+                  maxSizeMB={10}
+                  assetType="thumbnail"
+                  onUploadSuccess={(data) => handleAssetUploadSuccess('thumbnail', data)}
+                />
+                <R2FileUpload
+                  label="Course Workbook (PDF)"
+                  accept=".pdf"
+                  maxSizeMB={50}
+                  assetType="pdf"
+                  onUploadSuccess={(data) => handleAssetUploadSuccess('pdf', data)}
+                />
+              </div>
             </div>
 
-            {/* Cloudflare R2 Upload Zones — Thumbnail, PDF, ZIP only */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
-              <R2FileUpload
-                label="Course Thumbnail (Image)"
-                accept="image/*"
-                maxSizeMB={10}
-                assetType="thumbnail"
-                onUploadSuccess={(data) => handleAssetUploadSuccess('thumbnail', data)}
-              />
-              <R2FileUpload
-                label="Course Workbook (PDF)"
-                accept=".pdf"
-                maxSizeMB={50}
-                assetType="pdf"
-                onUploadSuccess={(data) => handleAssetUploadSuccess('pdf', data)}
-              />
+            {/* NEW: Course Lessons (MP4 Videos) Section */}
+            <div style={{
+              border: '1px solid rgba(236,72,153,0.3)',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              background: 'linear-gradient(145deg, rgba(236,72,153,0.04) 0%, rgba(168,85,247,0.04) 100%)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#eef0f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <VideoIcon style={{ width: 18, height: 18, color: '#EC4899' }} />
+                    Course Lessons (MP4 Videos)
+                  </h4>
+                  <p style={{ fontSize: '0.75rem', color: '#a89ec8', marginTop: '0.125rem' }}>
+                    Add unlimited MP4 lessons directly during creation (e.g., 5 videos for a masterclass). Each lesson is securely hosted on Cloudflare R2.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addStagedLesson}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem',
+                    background: 'linear-gradient(135deg, #EC4899, #A855F7)', border: 'none', borderRadius: '8px',
+                    color: '#fff', fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(236,72,153,0.3)',
+                  }}
+                >
+                  <Plus style={{ width: 14, height: 14 }} /> + Add Lesson Video
+                </button>
+              </div>
+
+              {stagedLessons.length === 0 ? (
+                <div style={{
+                  padding: '2rem', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.15)',
+                  borderRadius: '12px', color: '#6b5e88', fontSize: '0.875rem', background: 'rgba(255,255,255,0.01)',
+                }}>
+                  No lessons added yet. Click &quot;+ Add Lesson Video&quot; above to add your first lesson MP4 video!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {stagedLessons.map((lesson, idx) => (
+                    <div key={lesson.id} style={{
+                      background: 'rgba(18,10,36,0.7)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '12px',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{
+                          padding: '0.25rem 0.625rem', borderRadius: '6px', background: 'rgba(236,72,153,0.15)',
+                          color: '#F472B6', fontWeight: 700, fontSize: '0.75rem', border: '1px solid rgba(236,72,153,0.3)',
+                        }}>
+                          Lesson #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeStagedLesson(lesson.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.35rem 0.625rem',
+                            background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)',
+                            borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                          }}
+                        >
+                          <Trash2 style={{ width: 12, height: 12 }} /> Remove
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#a89ec8', display: 'block', marginBottom: '0.25rem' }}>
+                            Lesson Title *
+                          </label>
+                          <input
+                            required
+                            placeholder="e.g. Lesson 1: Finding Your Niche"
+                            value={lesson.title}
+                            onChange={(e) => updateStagedLesson(lesson.id, { title: e.target.value })}
+                            style={{ ...inputStyle, padding: '0.625rem 0.875rem', fontSize: '0.8125rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#a89ec8', display: 'block', marginBottom: '0.25rem' }}>
+                            Duration (minutes)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            placeholder="e.g. 15.5"
+                            value={lesson.duration}
+                            onChange={(e) => updateStagedLesson(lesson.id, { duration: e.target.value })}
+                            style={{ ...inputStyle, padding: '0.625rem 0.875rem', fontSize: '0.8125rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#a89ec8', display: 'block', marginBottom: '0.25rem' }}>
+                          Description / Topics Covered (Optional)
+                        </label>
+                        <input
+                          placeholder="Brief notes on what this lesson covers..."
+                          value={lesson.description}
+                          onChange={(e) => updateStagedLesson(lesson.id, { description: e.target.value })}
+                          style={{ ...inputStyle, padding: '0.625rem 0.875rem', fontSize: '0.8125rem' }}
+                        />
+                      </div>
+
+                      {/* Video Upload Area for this lesson */}
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#D8B4FE', display: 'block', marginBottom: '0.375rem' }}>
+                          Upload MP4 Video File * (Hosted on Cloudflare R2)
+                        </label>
+                        
+                        {lesson.videoKey ? (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0.75rem 1rem', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)',
+                            borderRadius: '10px',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <Check style={{ width: 18, height: 18, color: '#4ade80', flexShrink: 0 }} />
+                              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#eef0f6', wordBreak: 'break-all' }}>
+                                {lesson.filename || 'Video uploaded to R2'}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>
+                              {formatSize(lesson.fileSize)}
+                            </span>
+                          </div>
+                        ) : lesson.uploading ? (
+                          <div style={{
+                            padding: '0.875rem', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)',
+                            borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: '#D8B4FE' }}>
+                              <span>Uploading {lesson.filename} directly to Cloudflare R2...</span>
+                              <span>{lesson.progress}%</span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${lesson.progress}%`, height: '100%',
+                                background: 'linear-gradient(90deg, #EC4899, #A855F7)', transition: 'width 0.2s ease',
+                              }} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label style={{
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                              padding: '1.5rem', border: '1px dashed rgba(236,72,153,0.4)', borderRadius: '10px',
+                              background: 'rgba(236,72,153,0.03)', cursor: 'pointer', transition: 'all 0.2s ease',
+                              textAlign: 'center',
+                            }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(236,72,153,0.07)'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(236,72,153,0.03)'}
+                            >
+                              <VideoIcon style={{ width: 28, height: 28, color: '#EC4899', marginBottom: '0.5rem' }} />
+                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#eef0f6' }}>
+                                Click to Select Lesson MP4 Video File
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: '#a89ec8', marginTop: '0.25rem' }}>
+                                Supports .mp4, .mov, .webm (No size limit — Direct R2 Presign Upload)
+                              </span>
+                              <input
+                                type="file"
+                                accept="video/*,.mp4,.webm,.mkv,.mov"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const titleEl = document.getElementById('course-title-input') as HTMLInputElement | null;
+                                  const courseTitle = titleEl?.value || 'course';
+                                  uploadStagedLessonVideo(lesson.id, file, courseTitle);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        )}
+
+                        {lesson.error && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.25)' }}>
+                            <AlertCircle style={{ width: 14, height: 14, color: '#f87171', flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.75rem', color: '#f87171' }}>{lesson.error}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <R2FileUpload
-              label="Resources ZIP (Optional)"
-              accept=".zip,.rar,.7z"
-              maxSizeMB={5000}
-              assetType="zip"
-              onUploadSuccess={(data) => handleAssetUploadSuccess('zip', data)}
-            />
+            {/* Optional Legacy ZIP Option */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowOptionalZip(!showOptionalZip)}
+                style={{
+                  background: 'none', border: 'none', color: '#a89ec8', fontSize: '0.8125rem', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', padding: 0,
+                }}
+              >
+                {showOptionalZip ? <ChevronUp style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+                Need to include a supplementary Resources ZIP bundle? (Click to {showOptionalZip ? 'hide' : 'show'})
+              </button>
 
-            <p style={{ fontSize: '0.75rem', color: '#6b5e88', fontStyle: 'italic' }}>
-              💡 Lesson videos are added after creating the course — click the course row below to manage lessons.
-            </p>
+              {showOptionalZip && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <R2FileUpload
+                    label="Supplementary Resources ZIP (Optional)"
+                    accept=".zip,.rar,.7z"
+                    maxSizeMB={5000}
+                    assetType="zip"
+                    onUploadSuccess={(data) => handleAssetUploadSuccess('zip', data)}
+                  />
+                </div>
+              )}
+            </div>
 
             <button type="submit" disabled={submitting} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-              padding: '0.875rem', background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-              border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.9375rem', fontWeight: 700,
+              padding: '0.875rem', background: 'linear-gradient(135deg, #EC4899, #A855F7, #7C3AED)',
+              border: 'none', borderRadius: '12px', color: '#fff', fontSize: '1rem', fontWeight: 800,
               cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1,
-              boxShadow: '0 4px 20px rgba(168,85,247,0.3)', fontFamily: "'Poppins', sans-serif",
-              marginTop: '0.5rem',
+              boxShadow: '0 4px 25px rgba(236,72,153,0.4)', fontFamily: "'Poppins', sans-serif",
+              marginTop: '0.5rem', transition: 'all 0.2s ease',
             }}>
-              {submitting ? <Loader2 style={{ width: 18, height: 18, animation: 'spin 0.8s linear infinite' }} /> : null}
-              {submitting ? 'Saving Course...' : 'Create Course'}
+              {submitting ? <Loader2 style={{ width: 20, height: 20, animation: 'spin 0.8s linear infinite' }} /> : <VideoIcon style={{ width: 20, height: 20 }} />}
+              {submitting ? 'Saving Course & Lessons to Database...' : `Create Course ${stagedLessons.length > 0 ? `with ${stagedLessons.length} Lesson Video(s)` : ''}`}
             </button>
           </form>
         </div>
@@ -316,7 +658,7 @@ export default function AdminCoursesPage() {
           <div style={{ padding: '4rem 1.25rem', textAlign: 'center' }}>
             <BookOpen style={{ width: 40, height: 40, color: '#6b5e88', margin: '0 auto 1rem' }} />
             <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#a89ec8', marginBottom: '0.25rem' }}>No courses yet</p>
-            <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Click &quot;Add Course&quot; to get started</p>
+            <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Click &quot;Add Course&quot; to create your first course and upload lesson videos!</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -340,20 +682,26 @@ export default function AdminCoursesPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
                       {isExpanded
-                        ? <ChevronUp style={{ width: 16, height: 16, color: '#A855F7', flexShrink: 0 }} />
+                        ? <ChevronUp style={{ width: 16, height: 16, color: '#EC4899', flexShrink: 0 }} />
                         : <ChevronDown style={{ width: 16, height: 16, color: '#6b5e88', flexShrink: 0 }} />
                       }
                       <div style={{ minWidth: 0 }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#eef0f6' }}>{course.title}</span>
-                        <div style={{ fontSize: '0.6875rem', color: '#6b5e88', marginTop: '0.125rem' }}>
-                          {course.category || 'Uncategorized'} · ₹{(course.price / 100).toLocaleString()}
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#eef0f6', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{course.title}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.6875rem', color: '#a89ec8', marginTop: '0.25rem' }}>
+                          <span style={{ background: 'rgba(236,72,153,0.15)', color: '#F472B6', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                            🎬 {course.lessonCount ?? 0} Lesson Video(s)
+                          </span>
+                          <span>·</span>
+                          <span>{course.category || 'Uncategorized'}</span>
+                          <span>·</span>
+                          <span style={{ fontWeight: 600, color: '#4ade80' }}>₹{(course.price / 100).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                       <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(course); }} style={{
-                        display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '0.6875rem', fontWeight: 700,
+                        display: 'inline-block', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700,
                         background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`,
                         textTransform: 'capitalize', cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
                       }}>{course.status}</button>
@@ -376,9 +724,9 @@ export default function AdminCoursesPage() {
                   {/* Expanded: Lesson Manager */}
                   {isExpanded && (
                     <div style={{
-                      padding: '1rem 1.25rem 1.5rem',
-                      borderBottom: '1px solid rgba(168,85,247,0.15)',
-                      background: 'rgba(168,85,247,0.02)',
+                      padding: '1.25rem',
+                      borderBottom: '1px solid rgba(236,72,153,0.2)',
+                      background: 'rgba(18,10,36,0.6)',
                     }}>
                       <LessonManager courseId={course.id} courseSlug={slug} />
                     </div>

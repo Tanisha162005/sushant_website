@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { courses, courseLessons, courseAssets } from '@/db/schema';
+import { courses } from '@/db/schema';
 import { uploadFile } from '@/lib/r2-upload';
 import { AssetRepository } from '@/repositories/asset.repository';
 import { LessonRepository } from '@/repositories/lesson.repository';
 import { logger } from '@/lib/logger';
-import { desc, asc } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +32,7 @@ export async function GET() {
   }
 }
 
-// POST create a new course
+// POST create a new course along with staged lesson MP4 videos
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -100,6 +100,33 @@ export async function POST(req: NextRequest) {
       try {
         await assetRepo.create({ courseId: newCourse.id, filename: 'workbook.pdf', objectKey: pdfObjectKey, mimeType: 'application/pdf', size: 0, assetType: 'pdf' });
       } catch { /* ignore */ }
+    }
+
+    // Process staged lesson MP4 videos created directly during course creation
+    const lessonsJson = formData.get('lessons') as string | null;
+    if (lessonsJson) {
+      try {
+        const parsedLessons = JSON.parse(lessonsJson);
+        if (Array.isArray(parsedLessons)) {
+          for (let i = 0; i < parsedLessons.length; i++) {
+            const item = parsedLessons[i];
+            if (item && item.title && item.videoKey) {
+              await lessonRepo.create({
+                courseId: newCourse.id,
+                title: item.title,
+                description: item.description || null,
+                videoKey: item.videoKey,
+                duration: item.duration ? Math.round(Number(item.duration)) : null,
+                fileSize: item.fileSize ? Number(item.fileSize) : null,
+                displayOrder: item.displayOrder || i + 1,
+              });
+              logger.info(`[Course Creation] Staged lesson '${item.title}' attached to course ${newCourse.id}`);
+            }
+          }
+        }
+      } catch (lErr) {
+        logger.error('Error inserting staged lessons during course creation:', lErr);
+      }
     }
 
     return NextResponse.json({ success: true, data: newCourse }, { status: 201 });

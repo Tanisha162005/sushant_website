@@ -100,7 +100,7 @@ export function LessonManager({ courseId, courseSlug }: LessonManagerProps) {
           if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
         };
         xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`));
-        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.onerror = () => reject(new Error('Network error (CORS blocked): Check your Cloudflare R2 CORS rules for PUT requests.'));
         xhr.onabort = () => reject(new Error('Upload cancelled'));
         xhr.open('PUT', presignedUrl, true);
         xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
@@ -163,7 +163,7 @@ export function LessonManager({ courseId, courseSlug }: LessonManagerProps) {
           if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
         };
         xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`));
-        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.onerror = () => reject(new Error('Network error (CORS blocked): Check your Cloudflare R2 CORS rules for PUT requests.'));
         xhr.open('PUT', presignedUrl, true);
         xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
         xhr.send(file);
