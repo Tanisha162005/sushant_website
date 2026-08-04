@@ -33,7 +33,7 @@ export default async function AdminTicketsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#eef0f6', marginBottom: '0.25rem' }}>Support Tickets</h2>
-        <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Manage student queries and issues</p>
+        <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Manage user queries and issues</p>
       </div>
 
       {allTickets.length === 0 ? (
@@ -44,7 +44,7 @@ export default async function AdminTicketsPage() {
         }}>
           <MessageSquare style={{ width: 48, height: 48, color: '#6b5e88', margin: '0 auto 1rem' }} />
           <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#a89ec8', marginBottom: '0.25rem' }}>No support tickets</p>
-          <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Tickets from students will appear here</p>
+          <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Tickets from users will appear here</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

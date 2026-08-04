@@ -1,0 +1,1 @@
+ALTER TABLE "course_assets" ADD COLUMN "etag" varchar(255);

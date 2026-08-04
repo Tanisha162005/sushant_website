@@ -18,7 +18,7 @@ export class AdminService {
       SELECT 
         to_char(created_at, 'Mon') as name, 
         SUM(amount) as revenue,
-        COUNT(DISTINCT user_id) as students
+        COUNT(DISTINCT user_id) as users
       FROM payments
       WHERE status = 'successful'
       GROUP BY to_char(created_at, 'Mon'), EXTRACT(month FROM created_at)
@@ -27,8 +27,8 @@ export class AdminService {
 
     const revenueChart = monthlyStats.rows.map((row: Record<string, unknown>) => ({
       name: row.name,
-      revenue: Number(row.revenue) / 100, // convert from cents
-      students: Number(row.students)
+      revenue: Number(row.revenue) / 100, // convert from paise
+      users: Number(row.users)
     }));
 
     return {

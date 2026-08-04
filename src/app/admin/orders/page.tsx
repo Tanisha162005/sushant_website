@@ -66,7 +66,7 @@ export default async function AdminOrdersPage() {
                   <td colSpan={5} style={{ padding: '4rem 1.25rem', textAlign: 'center' }}>
                     <ShoppingCart style={{ width: 40, height: 40, color: '#6b5e88', margin: '0 auto 1rem' }} />
                     <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#a89ec8', marginBottom: '0.25rem' }}>No orders yet</p>
-                    <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Orders will appear here after a student makes a purchase</p>
+                    <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Orders will appear here after a user makes a purchase</p>
                   </td>
                 </tr>
               ) : (

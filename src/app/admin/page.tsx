@@ -34,19 +34,19 @@ export default function AdminDashboard() {
   const kpis = [
     { title: 'Total Revenue', value: `₹${(data?.kpis?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, gradient: 'linear-gradient(135deg, #10b981, #059669)', change: '+12.5%' },
     { title: 'Total Sales', value: data?.kpis?.salesCount || 0, icon: ShoppingCart, gradient: 'linear-gradient(135deg, #A855F7, #7C3AED)', change: '+8.2%' },
-    { title: 'Students', value: data?.kpis?.totalUsers || 0, icon: Users, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', change: '+24.1%' },
+    { title: 'Users', value: data?.kpis?.totalUsers || 0, icon: Users, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', change: '+24.1%' },
     { title: 'Courses', value: data?.kpis?.totalCourses || 0, icon: BookOpen, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', change: '+3' },
     { title: 'Page Views', value: data?.kpis?.pageViews || 12450, icon: TrendingUp, gradient: 'linear-gradient(135deg, #ec4899, #db2777)', change: '+14.2%' },
     { title: 'Open Tickets', value: data?.kpis?.openTickets || 0, icon: MessageSquare, gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', change: '-5' },
   ];
 
-  const salesData = [
-    { name: 'Jan', revenue: 4000, students: 24 },
-    { name: 'Feb', revenue: 3000, students: 18 },
-    { name: 'Mar', revenue: 5000, students: 32 },
-    { name: 'Apr', revenue: 4500, students: 28 },
-    { name: 'May', revenue: 6000, students: 41 },
-    { name: 'Jun', revenue: 7000, students: 52 },
+  const salesData = (data?.revenueChart && data.revenueChart.length > 0) ? data.revenueChart : [
+    { name: 'Jan', revenue: 4000, users: 24 },
+    { name: 'Feb', revenue: 3000, users: 18 },
+    { name: 'Mar', revenue: 5000, users: 32 },
+    { name: 'Apr', revenue: 4500, users: 28 },
+    { name: 'May', revenue: 6000, users: 41 },
+    { name: 'Jun', revenue: 7000, users: 52 },
   ];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Students Chart */}
+        {/* Users Chart */}
         <div style={{
           background: 'linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
           border: '1px solid rgba(255,255,255,0.06)',
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
             <Users style={{ width: 18, height: 18, color: '#6366f1' }} />
-            <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#eef0f6' }}>Student Enrollments</h3>
+            <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#eef0f6' }}>User Registrations</h3>
           </div>
           <div style={{ height: '280px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b5e88', fontSize: 12 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b5e88', fontSize: 12 }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="students" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
+                <Bar dataKey="users" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>

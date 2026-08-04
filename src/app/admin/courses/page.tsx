@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { Plus, Edit, Trash2, BookOpen, Upload, X, FileArchive, Loader2, Check, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Trash2, BookOpen, X, Loader2, Check, HardDrive, Image as ImageIcon, FileText, FileArchive, Video as VideoIcon } from 'lucide-react';
+import { R2FileUpload } from '@/components/admin/R2FileUpload';
 
 interface CourseData {
   id: string;
@@ -14,16 +15,33 @@ interface CourseData {
   downloadUrl: string | null;
 }
 
+interface UploadedAssetMeta {
+  size: number;
+  assetType: 'thumbnail' | 'pdf' | 'zip' | 'video';
+  filename: string;
+  etag?: string;
+}
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '0 MB';
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
 export default function AdminCoursesPage() {
   const [allCourses, setAllCourses] = useState<CourseData[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [fileName, setFileName] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [imageName, setImageName] = useState('');
-  const imageRef = useRef<HTMLInputElement>(null);
+
+  // Uploaded R2 Object Keys & Metadata tracking
+  const [thumbnailKey, setThumbnailKey] = useState<string>('');
+  const [pdfKey, setPdfKey] = useState<string>('');
+  const [zipKey, setZipKey] = useState<string>('');
+  const [videoKeys, setVideoKeys] = useState<string[]>([]);
+  const [assetMetas, setAssetMetas] = useState<UploadedAssetMeta[]>([]);
 
   const fetchCourses = async () => {
     try {
@@ -35,6 +53,21 @@ export default function AdminCoursesPage() {
   };
 
   useEffect(() => { fetchCourses(); }, []);
+
+  const handleAssetUploadSuccess = (
+    assetType: 'thumbnail' | 'pdf' | 'zip' | 'video',
+    data: { objectKey: string; filename: string; mimeType: string; size: number }
+  ) => {
+    if (assetType === 'thumbnail') setThumbnailKey(data.objectKey);
+    else if (assetType === 'pdf') setPdfKey(data.objectKey);
+    else if (assetType === 'zip') setZipKey(data.objectKey);
+    else if (assetType === 'video') setVideoKeys((prev) => [...prev, data.objectKey]);
+
+    setAssetMetas((prev) => [
+      ...prev.filter((a) => a.assetType !== assetType || assetType === 'video'),
+      { size: data.size, assetType, filename: data.filename },
+    ]);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,15 +85,11 @@ export default function AdminCoursesPage() {
       formData.set('originalPrice', String(Math.round(parseFloat(origPrice) * 100)));
     }
 
-    // MOCKUP SPEED-UP: Do not actually upload the massive 11GB ZIP files during presentation!
-    // The browser takes a long time to read and send gigabytes of data.
-    // We will just send an empty ZIP file so the backend responds instantly.
-    const zipFile = formData.get('zipFile') as File;
-    if (zipFile && zipFile.name) {
-        formData.set('zipFile', new File(['dummy'], zipFile.name, { type: zipFile.type }));
-    }
-
-    // Note: We DO upload the real imageFile because it's small and needed for the frontend thumbnail!
+    // Attach R2 object keys
+    if (thumbnailKey) formData.set('thumbnailObjectKey', thumbnailKey);
+    if (zipKey) formData.set('zipObjectKey', zipKey);
+    if (pdfKey) formData.set('pdfObjectKey', pdfKey);
+    if (videoKeys.length > 0) formData.set('videoObjectKeys', JSON.stringify(videoKeys));
 
     try {
       const res = await fetch('/api/admin/courses', {
@@ -70,8 +99,11 @@ export default function AdminCoursesPage() {
       const data = await res.json();
       if (data.success) {
         setShowForm(false);
-        setFileName('');
-        setImageName('');
+        setThumbnailKey('');
+        setPdfKey('');
+        setZipKey('');
+        setVideoKeys([]);
+        setAssetMetas([]);
         form.reset();
         fetchCourses();
       } else {
@@ -104,6 +136,13 @@ export default function AdminCoursesPage() {
     } catch (e) { /* ignore */ }
   };
 
+  // Storage metric calculations
+  const thumbnailSize = assetMetas.filter((a) => a.assetType === 'thumbnail').reduce((acc, a) => acc + a.size, 0);
+  const pdfSize = assetMetas.filter((a) => a.assetType === 'pdf').reduce((acc, a) => acc + a.size, 0);
+  const zipSize = assetMetas.filter((a) => a.assetType === 'zip').reduce((acc, a) => acc + a.size, 0);
+  const videoSize = assetMetas.filter((a) => a.assetType === 'video').reduce((acc, a) => acc + a.size, 0);
+  const totalStorage = thumbnailSize + pdfSize + zipSize + videoSize;
+
   const statusColor: Record<string, { bg: string; text: string; border: string }> = {
     published: { bg: 'rgba(74,222,128,0.08)', text: '#4ade80', border: 'rgba(74,222,128,0.2)' },
     draft: { bg: 'rgba(168,85,247,0.08)', text: '#D8B4FE', border: 'rgba(168,85,247,0.2)' },
@@ -134,7 +173,7 @@ export default function AdminCoursesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#eef0f6', marginBottom: '0.25rem' }}>Courses</h2>
-          <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Manage your course catalog — upload ZIP files for students to download after payment</p>
+          <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Manage course assets with direct Cloudflare R2 uploads (supporting 5 GB+ files)</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} style={{
           display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem',
@@ -147,6 +186,55 @@ export default function AdminCoursesPage() {
           {showForm ? <><X style={{ width: 16, height: 16 }} /> Cancel</> : <><Plus style={{ width: 16, height: 16 }} /> Add Course</>}
         </button>
       </div>
+
+      {/* Optional Storage Summary Widget for Administrator Visibility */}
+      {assetMetas.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(145deg, rgba(168,85,247,0.06) 0%, rgba(18,10,36,0.8) 100%)',
+          border: '1px solid rgba(168,85,247,0.2)', borderRadius: '16px', padding: '1.25rem',
+          display: 'flex', flexDirection: 'column', gap: '0.75rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#D8B4FE', fontWeight: 700, fontSize: '0.875rem' }}>
+            <HardDrive style={{ width: 18, height: 18, color: '#A855F7' }} />
+            <span>R2 Storage Summary (Staged Assets)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#a89ec8' }}>
+                <ImageIcon style={{ width: 14, height: 14, color: '#A855F7' }} /> Thumbnail
+              </div>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: '#eef0f6', marginTop: '0.25rem' }}>{formatSize(thumbnailSize)}</p>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#a89ec8' }}>
+                <FileText style={{ width: 14, height: 14, color: '#38BDF8' }} /> PDF Workbook
+              </div>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: '#eef0f6', marginTop: '0.25rem' }}>{formatSize(pdfSize)}</p>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#a89ec8' }}>
+                <FileArchive style={{ width: 14, height: 14, color: '#F59E0B' }} /> ZIP Bundle
+              </div>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: '#eef0f6', marginTop: '0.25rem' }}>{formatSize(zipSize)}</p>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#a89ec8' }}>
+                <VideoIcon style={{ width: 14, height: 14, color: '#EC4899' }} /> Course Videos
+              </div>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: '#eef0f6', marginTop: '0.25rem' }}>{formatSize(videoSize)}</p>
+            </div>
+
+            <div style={{ background: 'rgba(168,85,247,0.1)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(168,85,247,0.3)' }}>
+              <div style={{ fontSize: '0.75rem', color: '#D8B4FE', fontWeight: 600 }}>Total Storage Used</div>
+              <p style={{ fontSize: '1.125rem', fontWeight: 800, color: '#4ade80', marginTop: '0.25rem' }}>{formatSize(totalStorage)}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Course Form */}
       {showForm && (
@@ -204,74 +292,44 @@ export default function AdminCoursesPage() {
               </select>
             </div>
 
-            {/* Image Upload */}
-            <div>
-              <label style={labelStyle}>Course Thumbnail (Image)</label>
-              <div
-                onClick={() => imageRef.current?.click()}
-                style={{
-                  border: '2px dashed rgba(168,85,247,0.2)', borderRadius: '12px', padding: '2rem',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', transition: 'all 0.3s ease',
-                  background: imageName ? 'rgba(74,222,128,0.04)' : 'rgba(255,255,255,0.02)',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
-              >
-                {imageName ? (
-                  <>
-                    <ImageIcon style={{ width: 32, height: 32, color: '#4ade80', marginBottom: '0.5rem' }} />
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#4ade80' }}>{imageName}</p>
-                    <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>Click to change image</p>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon style={{ width: 32, height: 32, color: '#6b5e88', marginBottom: '0.5rem' }} />
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#a89ec8' }}>Click to upload Thumbnail</p>
-                    <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>JPG, PNG, WebP format</p>
-                  </>
-                )}
-              </div>
-              <input
-                ref={imageRef} type="file" name="imageFile" accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) => setImageName(e.target.files?.[0]?.name || '')}
+            {/* Cloudflare R2 Upload Zones */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
+              {/* Thumbnail */}
+              <R2FileUpload
+                label="Course Thumbnail (Image)"
+                accept="image/*"
+                maxSizeMB={10}
+                assetType="thumbnail"
+                onUploadSuccess={(data) => handleAssetUploadSuccess('thumbnail', data)}
+              />
+
+              {/* PDF Workbook */}
+              <R2FileUpload
+                label="Course Workbook (PDF)"
+                accept=".pdf"
+                maxSizeMB={50}
+                assetType="pdf"
+                onUploadSuccess={(data) => handleAssetUploadSuccess('pdf', data)}
               />
             </div>
 
-            {/* ZIP Upload */}
-            <div>
-              <label style={labelStyle}>Course Content (ZIP File)</label>
-              <div
-                onClick={() => fileRef.current?.click()}
-                style={{
-                  border: '2px dashed rgba(168,85,247,0.2)', borderRadius: '12px', padding: '2rem',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', transition: 'all 0.3s ease',
-                  background: fileName ? 'rgba(74,222,128,0.04)' : 'rgba(255,255,255,0.02)',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
-              >
-                {fileName ? (
-                  <>
-                    <FileArchive style={{ width: 32, height: 32, color: '#4ade80', marginBottom: '0.5rem' }} />
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#4ade80' }}>{fileName}</p>
-                    <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>Click to change file</p>
-                  </>
-                ) : (
-                  <>
-                    <Upload style={{ width: 32, height: 32, color: '#6b5e88', marginBottom: '0.5rem' }} />
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#a89ec8' }}>Click to upload ZIP file</p>
-                    <p style={{ fontSize: '0.75rem', color: '#6b5e88', marginTop: '0.25rem' }}>Videos, PDFs, resources — all bundled in one ZIP</p>
-                    <p style={{ fontSize: '0.75rem', color: '#a855f7', marginTop: '0.25rem', fontWeight: 600 }}>Note: File sizes of 11 GB+ are supported</p>
-                  </>
-                )}
-              </div>
-              <input
-                ref={fileRef} type="file" name="zipFile" accept=".zip,.rar,.7z"
-                style={{ display: 'none' }}
-                onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              {/* Masterclass Bundle ZIP */}
+              <R2FileUpload
+                label="Masterclass Content (ZIP Bundle)"
+                accept=".zip,.rar,.7z"
+                maxSizeMB={5000}
+                assetType="zip"
+                onUploadSuccess={(data) => handleAssetUploadSuccess('zip', data)}
+              />
+
+              {/* Course Videos */}
+              <R2FileUpload
+                label="Course Video (MP4 / WebM)"
+                accept="video/*"
+                maxSizeMB={5000}
+                assetType="video"
+                onUploadSuccess={(data) => handleAssetUploadSuccess('video', data)}
               />
             </div>
 
@@ -282,9 +340,10 @@ export default function AdminCoursesPage() {
               border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.9375rem', fontWeight: 700,
               cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1,
               boxShadow: '0 4px 20px rgba(168,85,247,0.3)', fontFamily: "'Poppins', sans-serif",
+              marginTop: '0.5rem',
             }}>
-              {submitting ? <Loader2 style={{ width: 18, height: 18, animation: 'spin 0.8s linear infinite' }} /> : <Upload style={{ width: 18, height: 18 }} />}
-              {submitting ? 'Creating Course...' : 'Create Course'}
+              {submitting ? <Loader2 style={{ width: 18, height: 18, animation: 'spin 0.8s linear infinite' }} /> : null}
+              {submitting ? 'Saving Course...' : 'Create Course'}
             </button>
           </form>
         </div>
@@ -299,7 +358,7 @@ export default function AdminCoursesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['Title', 'Status', 'Category', 'Price', 'ZIP', 'Actions'].map((h) => (
+                {['Title', 'Status', 'Category', 'Price', 'R2 Storage', 'Actions'].map((h) => (
                   <th key={h} style={{
                     padding: '0.875rem 1.25rem', textAlign: h === 'Actions' ? 'right' : 'left',
                     fontSize: '0.6875rem', fontWeight: 700, color: '#6b5e88', textTransform: 'uppercase', letterSpacing: '0.08em',
@@ -313,7 +372,7 @@ export default function AdminCoursesPage() {
                   <td colSpan={6} style={{ padding: '4rem 1.25rem', textAlign: 'center' }}>
                     <BookOpen style={{ width: 40, height: 40, color: '#6b5e88', margin: '0 auto 1rem' }} />
                     <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#a89ec8', marginBottom: '0.25rem' }}>No courses yet</p>
-                    <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Click "Add Course" to create one with a ZIP file</p>
+                    <p style={{ fontSize: '0.8125rem', color: '#6b5e88' }}>Click "Add Course" to upload assets directly to R2</p>
                   </td>
                 </tr>
               ) : (
@@ -338,10 +397,10 @@ export default function AdminCoursesPage() {
                       <td style={{ padding: '1rem 1.25rem' }}>
                         {course.downloadUrl ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#4ade80' }}>
-                            <Check style={{ width: 14, height: 14 }} /> Uploaded
+                            <Check style={{ width: 14, height: 14 }} /> Cloudflare R2
                           </span>
                         ) : (
-                          <span style={{ fontSize: '0.75rem', color: '#6b5e88' }}>No file</span>
+                          <span style={{ fontSize: '0.75rem', color: '#6b5e88' }}>No R2 key</span>
                         )}
                       </td>
                       <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>

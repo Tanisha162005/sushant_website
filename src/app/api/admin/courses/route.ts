@@ -1,26 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { courses } from '@/db/schema';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { randomUUID } from 'crypto';
-
 import { MOCK_COURSES } from '@/lib/mockDb';
+import { uploadFile } from '@/lib/r2-upload';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 // GET all courses
 export async function GET() {
   try {
-    // Return in-memory courses instead of DB
     return NextResponse.json({ success: true, data: MOCK_COURSES });
   } catch (error) {
-    console.error('Error fetching courses:', error);
+    logger.error('Error fetching courses:', error);
     return NextResponse.json({ success: false, message: 'Failed to fetch courses' }, { status: 500 });
   }
 }
 
-// POST create a new course (with optional ZIP upload)
+// POST create a new course using R2 object keys or R2 upload
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -31,6 +29,11 @@ export async function POST(req: NextRequest) {
     const originalPrice = formData.get('originalPrice') ? parseInt(formData.get('originalPrice') as string, 10) : null;
     const category = formData.get('category') as string || null;
     const status = (formData.get('status') as string) || 'draft';
+
+    // R2 Object Keys passed from direct/server R2 uploads
+    let downloadUrl = (formData.get('zipObjectKey') as string) || null;
+    let imageUrl = (formData.get('thumbnailObjectKey') as string) || (formData.get('imageUrl') as string) || null;
+
     const zipFile = formData.get('zipFile') as File | null;
     const imageFile = formData.get('imageFile') as File | null;
 
@@ -38,43 +41,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Title, description, and price are required' }, { status: 400 });
     }
 
-    let downloadUrl: string | null = null;
+    const courseSlug = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
-    // Handle ZIP file upload
-    if (zipFile && zipFile.size > 0) {
-      const uploadDir = path.join(process.cwd(), 'uploads', 'courses');
-      await mkdir(uploadDir, { recursive: true });
-
-      const fileExtension = path.extname(zipFile.name) || '.zip';
-      const fileName = `${randomUUID()}${fileExtension}`;
-      const filePath = path.join(uploadDir, fileName);
-
+    // Handle ZIP file upload to R2 if provided directly via FormData
+    if (zipFile && zipFile.size > 0 && !downloadUrl) {
       const bytes = await zipFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      await writeFile(filePath, buffer);
-
-      downloadUrl = `/api/admin/courses/file/${fileName}`;
+      const res = await uploadFile(buffer, courseSlug, zipFile.name, zipFile.type || 'application/zip');
+      downloadUrl = res.objectKey;
     }
 
-    let imageUrl: string | null = null;
-
-    // Handle Image file upload
-    if (imageFile && imageFile.size > 0) {
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'thumbnails');
-      await mkdir(uploadDir, { recursive: true });
-
-      const fileExtension = path.extname(imageFile.name) || '.jpg';
-      const fileName = `${randomUUID()}${fileExtension}`;
-      const filePath = path.join(uploadDir, fileName);
-
+    // Handle Image file upload to R2 if provided directly via FormData
+    if (imageFile && imageFile.size > 0 && !imageUrl) {
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      await writeFile(filePath, buffer);
-
-      imageUrl = `/uploads/thumbnails/${fileName}`;
+      const res = await uploadFile(buffer, courseSlug, imageFile.name, imageFile.type || 'image/jpeg');
+      imageUrl = res.objectKey;
     }
 
-    // MOCK insert instead of DB
     const newCourse = {
       id: randomUUID(),
       title,
@@ -89,11 +73,27 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString()
     };
     
+    try {
+      await db.insert(courses).values({
+        id: newCourse.id,
+        title: newCourse.title,
+        description: newCourse.description,
+        price: newCourse.price,
+        originalPrice: newCourse.originalPrice,
+        category: newCourse.category,
+        status: newCourse.status,
+        downloadUrl: newCourse.downloadUrl,
+        imageUrl: newCourse.imageUrl,
+      });
+    } catch (dbErr) {
+      logger.warn('[Course API] DB insert fallback to memory:', dbErr);
+    }
+
     MOCK_COURSES.push(newCourse);
 
     return NextResponse.json({ success: true, data: newCourse }, { status: 201 });
   } catch (error) {
-    console.error('Error creating course:', error);
+    logger.error('Error creating course:', error);
     return NextResponse.json({ success: false, message: 'Failed to create course' }, { status: 500 });
   }
 }

@@ -35,13 +35,24 @@ export const Course = () => {
       })
       .catch(() => {});
 
-    // Check if user already purchased (from localStorage)
+    // Check backend for user's purchased courses (for lifetime unlimited access across devices)
+    fetch('/api/user/purchases')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          const dbPurchasedIds = data.data.map((c: CourseData) => c.id);
+          setPurchasedCourseIds((prev) => Array.from(new Set([...prev, ...dbPurchasedIds])));
+        }
+      })
+      .catch(() => {});
+
+    // Check if user already purchased (from localStorage for instant offline feedback)
     const savedPurchases = localStorage.getItem('purchased_courses');
     if (savedPurchases) {
       try {
         const parsed = JSON.parse(savedPurchases);
-        setPurchasedCourseIds(parsed.courseIds || []);
-        setPurchasedUserId(parsed.userId);
+        setPurchasedCourseIds((prev) => Array.from(new Set([...prev, ...(parsed.courseIds || [])])));
+        if (parsed.userId) setPurchasedUserId(parsed.userId);
       } catch {}
     }
   }, []);
@@ -100,24 +111,17 @@ export const Course = () => {
     setDownloading(courseId);
     
     try {
-      const res = await fetch(`/api/courses/${courseId}/download?userId=${purchasedUserId}`);
-      
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.message || 'Download failed');
+      const res = await fetch(`/api/courses/${courseId}/download?userId=${purchasedUserId}&json=true`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success || !data.signedUrl) {
+        alert(data.message || 'Failed to generate secure download link');
         setDownloading(null);
         return;
       }
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'course_content.zip';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Open R2 signed URL directly to trigger browser download
+      window.location.href = data.signedUrl;
     } catch {
       alert('Download failed. Please try again.');
     }

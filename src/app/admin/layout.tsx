@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 const sidebarLinks = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Courses', href: '/admin/courses', icon: BookOpen },
-  { name: 'Students', href: '/admin/students', icon: Users },
+  { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Coupons', href: '/admin/coupons', icon: Tag },
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },

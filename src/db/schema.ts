@@ -4,6 +4,7 @@ import { relations } from 'drizzle-orm';
 export const userRoleEnum = pgEnum('user_role', ['user', 'super_admin', 'admin', 'support', 'content_manager', 'finance_manager']);
 export const paymentStatusEnum = pgEnum('payment_status', ['created', 'successful', 'failed', 'refunded']);
 export const courseStatusEnum = pgEnum('course_status', ['draft', 'published', 'archived']);
+export const assetTypeEnum = pgEnum('asset_type', ['thumbnail', 'video', 'pdf', 'zip']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
 
 export const users = pgTable('users', {
@@ -134,9 +135,31 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const courseAssets = pgTable('course_assets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  filename: varchar('filename', { length: 255 }).notNull(),
+  objectKey: varchar('object_key', { length: 1024 }).notNull().unique(),
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  size: integer('size').notNull(),
+  assetType: assetTypeEnum('asset_type').notNull(),
+  storageProvider: varchar('storage_provider', { length: 50 }).default('cloudflare-r2').notNull(),
+  etag: varchar('etag', { length: 255 }),
+  checksum: varchar('checksum', { length: 64 }),
+  uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
+});
+
 // Relations
 export const coursesRelations = relations(courses, ({ many }) => ({
   modules: many(courseModules),
+  assets: many(courseAssets),
+}));
+
+export const courseAssetsRelations = relations(courseAssets, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseAssets.courseId],
+    references: [courses.id],
+  }),
 }));
 
 export const courseModulesRelations = relations(courseModules, ({ one, many }) => ({
