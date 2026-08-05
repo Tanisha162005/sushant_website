@@ -73,6 +73,16 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as TabType;
+      if (tabParam && ['courses', 'downloads', 'orders', 'profile', 'settings'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (user) {
       fetch('/api/user/purchases')
         .then((r) => r.json())

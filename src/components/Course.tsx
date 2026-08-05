@@ -160,7 +160,8 @@ export const Course = () => {
               setPurchasedCourseIds(updatedIds);
               setPurchasedUserId(user.id);
               setBuyingCourse(null);
-              alert('🎉 Payment successful! You can now access the course from your dashboard.');
+              alert('🎉 Payment successful! You will now be redirected to your dashboard downloads section.');
+              window.location.href = '/dashboard?tab=downloads';
             } else {
               alert('Payment was received but verification failed. Please contact support.');
             }
@@ -194,26 +195,9 @@ export const Course = () => {
     }
   };
 
-  const handleDownload = async (courseId: string) => {
+  const handleDownload = (courseId: string) => {
     if (!purchasedCourseIds.includes(courseId) || !purchasedUserId) return;
-    setDownloading(courseId);
-    
-    try {
-      const res = await fetch(`/api/courses/${courseId}/download?userId=${purchasedUserId}&json=true`);
-      const data = await res.json();
-
-      if (!res.ok || !data.success || !data.signedUrl) {
-        alert(data.message || 'Failed to generate secure download link');
-        setDownloading(null);
-        return;
-      }
-
-      // Open R2 signed URL directly to trigger browser download
-      window.location.href = data.signedUrl;
-    } catch {
-      alert('Download failed. Please try again.');
-    }
-    setDownloading(null);
+    window.location.href = '/dashboard?tab=downloads';
   };
 
   const getDisplayPrice = (c: CourseData) => c.price / 100;

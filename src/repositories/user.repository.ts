@@ -9,7 +9,7 @@ export class UserRepository {
   }
 
   async findByEmail(email: string) {
-    const result = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+    const result = await db.select().from(users).where(eq(users.email, email.trim().toLowerCase())).limit(1);
     return result[0] || null;
   }
 
@@ -25,8 +25,8 @@ export class UserRepository {
 
   async create(data: { name: string; email: string; phone?: string; password?: string; googleId?: string; avatarUrl?: string }) {
     const result = await db.insert(users).values({
-      name: data.name,
-      email: data.email.toLowerCase(),
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
       phone: data.phone || null,
       password: data.password || null,
       googleId: data.googleId || null,

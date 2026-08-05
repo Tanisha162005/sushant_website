@@ -23,18 +23,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existingUser = await userRepo.findByEmail(email);
+    const cleanEmail = email.trim().toLowerCase();
+    const existingUser = await userRepo.findByEmail(cleanEmail);
     if (existingUser) {
+      const isGoogleAccount = !existingUser.password && existingUser.googleId;
+      const errorMsg = isGoogleAccount
+        ? 'An account with this email ID is already registered using Google Sign-In. Please sign in with Google instead.'
+        : 'An account with this email ID is already registered. Please login instead.';
       return NextResponse.json(
-        { success: false, message: 'An account with this email already exists' },
+        { success: false, message: errorMsg },
         { status: 400 }
       );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await userRepo.create({
-      name,
-      email,
+      name: name.trim(),
+      email: cleanEmail,
       password: hashedPassword,
     });
 
