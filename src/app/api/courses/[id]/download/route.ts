@@ -12,9 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id: courseId } = await params;
 
-    // 1. Authenticate user
+    // 1. Authenticate user strictly from verified server session cookie
     let userId: string | null = null;
-    const token = req.cookies.get('user_token')?.value;
+    const token = req.cookies.get('user_token')?.value || req.cookies.get('accessToken')?.value;
 
     if (token) {
       try {
@@ -22,39 +22,37 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const { payload } = await jwtVerify(token, secret);
         userId = payload.userId as string;
       } catch {
-        logger.warn('Invalid user_token cookie during download verification');
+        logger.warn('Invalid auth token cookie during download verification');
       }
-    }
-
-    if (!userId) {
-      userId = req.nextUrl.searchParams.get('userId');
     }
 
     if (!userId) {
       return NextResponse.json(
-        { success: false, message: 'Authentication required' },
+        { success: false, message: 'Authentication required. Please log in.' },
         { status: 401 }
       );
     }
 
-    // 2. Verify purchase
-    if (userId !== 'temp-user') {
-      try {
-        const purchaseRecord = await db
-          .select()
-          .from(payments)
-          .where(and(eq(payments.userId, userId), eq(payments.courseId, courseId), eq(payments.status, 'successful')))
-          .limit(1);
+    // 2. Verify purchase in PostgreSQL
+    try {
+      const purchaseRecord = await db
+        .select()
+        .from(payments)
+        .where(and(eq(payments.userId, userId), eq(payments.courseId, courseId), eq(payments.status, 'successful')))
+        .limit(1);
 
-        if (purchaseRecord.length === 0 && !req.nextUrl.searchParams.get('userId')) {
-          return NextResponse.json(
-            { success: false, message: 'No valid purchase found for this course.' },
-            { status: 403 }
-          );
-        }
-      } catch (dbErr) {
-        logger.warn('DB purchase check error:', dbErr);
+      if (purchaseRecord.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'No valid purchase found for this course.' },
+          { status: 403 }
+        );
       }
+    } catch (dbErr) {
+      logger.warn('DB purchase check error:', dbErr);
+      return NextResponse.json(
+        { success: false, message: 'Unable to verify course purchase status.' },
+        { status: 500 }
+      );
     }
 
     // 3. Determine what to download

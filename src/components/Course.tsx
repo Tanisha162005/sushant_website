@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { PurchaseCard } from './PurchaseCard';
 import { CourseDetails } from './CourseDetails';
 import { MobileStickyBuy } from './MobileStickyBuy';
@@ -21,7 +23,10 @@ export const Course = () => {
   const [purchasedCourseIds, setPurchasedCourseIds] = useState<string[]>([]);
   const [purchasedUserId, setPurchasedUserId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const router = useRouter();
   const purchaseCardRef = useRef<HTMLDivElement>(null);
 
   // Load published courses from backend
@@ -59,25 +64,39 @@ export const Course = () => {
 
   const handlePayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const phone = formData.get('phone') as string;
+    if (paymentProcessing) return;
 
     if (!buyingCourse) {
       alert('Course is not available right now. Please try again later.');
       return;
     }
 
+    // Require user to be logged in
+    if (!user) {
+      alert('Please log in first to purchase this course.');
+      router.push('/login');
+      return;
+    }
+
+    // Extract form values BEFORE any asynchronous operations
+    const form = e.currentTarget;
+    const prefillName = (form.elements.namedItem('name') as HTMLInputElement)?.value || user.name;
+    const prefillEmail = (form.elements.namedItem('email') as HTMLInputElement)?.value || user.email;
+    const prefillContact = (form.elements.namedItem('phone') as HTMLInputElement)?.value || '';
+
+    setPaymentProcessing(true);
+
     try {
+      // Step 1: Create Razorpay order on server using real user ID
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'temp-user', courseId: buyingCourse.id })
+        body: JSON.stringify({ userId: user.id, courseId: buyingCourse.id })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || 'Failed to create order');
 
+      // Step 2: Open Razorpay checkout
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
         amount: data.order.amount,
@@ -85,16 +104,49 @@ export const Course = () => {
         name: 'Sushant Ghadge Masterclass',
         description: buyingCourse.title,
         order_id: data.order.id,
-        handler: function (response: Record<string, string>) {
-          const updatedIds = [...purchasedCourseIds, buyingCourse.id];
-          const purchaseInfo = { courseIds: updatedIds, userId: data.paymentRecord.userId };
-          localStorage.setItem('purchased_courses', JSON.stringify(purchaseInfo));
-          setPurchasedCourseIds(updatedIds);
-          setPurchasedUserId(data.paymentRecord.userId);
-          setBuyingCourse(null);
-          alert('🎉 Payment successful! You can now download the course content.');
+        handler: async function (response: Record<string, string>) {
+          try {
+            // Step 3: Verify payment signature on server
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              // Payment verified — update local state
+              const updatedIds = [...purchasedCourseIds, buyingCourse.id];
+              const purchaseInfo = { courseIds: updatedIds, userId: user.id };
+              localStorage.setItem('purchased_courses', JSON.stringify(purchaseInfo));
+              setPurchasedCourseIds(updatedIds);
+              setPurchasedUserId(user.id);
+              setBuyingCourse(null);
+              alert('🎉 Payment successful! You can now access the course from your dashboard.');
+            } else {
+              alert('Payment was received but verification failed. Please contact support.');
+            }
+          } catch (verifyError) {
+            console.error('Payment verification error:', verifyError);
+            alert('Payment was received but verification encountered an error. Please contact support.');
+          } finally {
+            setPaymentProcessing(false);
+          }
         },
-        prefill: { name, email, contact: phone },
+        modal: {
+          ondismiss: function () {
+            setPaymentProcessing(false);
+          },
+        },
+        prefill: {
+          name: prefillName,
+          email: prefillEmail,
+          contact: prefillContact,
+        },
         theme: { color: '#a855f7' }
       };
 
@@ -102,7 +154,9 @@ export const Course = () => {
       rzp.open();
     } catch (error) {
       console.error(error);
-      alert('Payment initialization failed. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Payment initialization failed. Please try again.';
+      alert(`Error: ${errorMessage}`);
+      setPaymentProcessing(false);
     }
   };
 
@@ -248,11 +302,11 @@ export const Course = () => {
         />
       )}
 
-      {/* Payment Modal — PRESERVED EXACTLY from original */}
+      {/* Payment Modal */}
       {buyingCourse && (
         <div className="payment-overlay active" style={{ display: 'flex' }}>
           <div className="payment-modal active">
-            <button className="payment-modal-close" onClick={() => setBuyingCourse(null)} aria-label="Close">&times;</button>
+            <button className="payment-modal-close" onClick={() => !paymentProcessing && setBuyingCourse(null)} aria-label="Close" disabled={paymentProcessing}>&times;</button>
             <div className="payment-modal-header">
               <div className="payment-modal-icon">🎬</div>
               <h3>{buyingCourse.title}</h3>
@@ -261,22 +315,27 @@ export const Course = () => {
                 <span className="payment-price-current">₹{getDisplayPrice(buyingCourse).toLocaleString()}</span>
               </p>
             </div>
+            {!user && (
+              <div style={{ padding: '12px 16px', marginBottom: '12px', borderRadius: '10px', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', color: '#fbbf24', fontSize: '0.85rem', textAlign: 'center' }}>
+                ⚠️ Please <a href="/login" style={{ color: '#a855f7', textDecoration: 'underline', fontWeight: 600 }}>log in</a> or <a href="/register" style={{ color: '#a855f7', textDecoration: 'underline', fontWeight: 600 }}>register</a> first to purchase.
+              </div>
+            )}
             <form className="payment-form" onSubmit={handlePayment}>
               <div className="payment-field">
                 <label htmlFor="pay-name">Your Name</label>
-                <input type="text" id="pay-name" name="name" placeholder="Name" required minLength={2} />
+                <input type="text" id="pay-name" name="name" placeholder="Name" required minLength={2} defaultValue={user?.name || ''} />
               </div>
               <div className="payment-field">
                 <label htmlFor="pay-email">Email</label>
-                <input type="email" id="pay-email" name="email" placeholder="example@email.com" required />
+                <input type="email" id="pay-email" name="email" placeholder="example@email.com" required defaultValue={user?.email || ''} />
               </div>
               <div className="payment-field">
                 <label htmlFor="pay-phone">Phone</label>
                 <input type="tel" id="pay-phone" name="phone" placeholder="10-digit mobile number" required pattern="[6-9][0-9]{9}" maxLength={10} />
               </div>
-              <button type="submit" className="btn-primary btn-glow payment-submit-btn">
-                <span className="btn-icon">🔒</span>
-                <span className="payment-btn-text">Pay ₹{getDisplayPrice(buyingCourse).toLocaleString()} Securely</span>
+              <button type="submit" className="btn-primary btn-glow payment-submit-btn" disabled={paymentProcessing}>
+                <span className="btn-icon">{paymentProcessing ? '⏳' : '🔒'}</span>
+                <span className="payment-btn-text">{paymentProcessing ? 'Processing...' : `Pay ₹${getDisplayPrice(buyingCourse).toLocaleString()} Securely`}</span>
                 <span className="btn-shine"></span>
               </button>
               <p className="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
@@ -284,6 +343,7 @@ export const Course = () => {
           </div>
         </div>
       )}
+
     </>
   );
 };

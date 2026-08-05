@@ -15,45 +15,42 @@ export class PaymentService {
     
     const amount = course.price;
 
+    // Razorpay has a strict 40-character maximum limit on receipt ID
+    const receipt = `rcpt_${Date.now().toString(36)}_${courseId.slice(-8)}`;
+
     const options = {
       amount,
       currency: 'INR',
-      receipt: `receipt_order_${new Date().getTime()}`,
+      receipt,
     };
     
-    // Fallback if Razorpay is not configured for test/local
+    // Create Razorpay order
     let order;
     try {
       order = await razorpay.orders.create(options);
-    } catch {
-      order = { id: `mock_order_${new Date().getTime()}`, amount, currency: 'INR' };
+    } catch (err) {
+      const rzErr = err as Record<string, unknown>;
+      const errObj = rzErr?.error as Record<string, unknown> | undefined;
+      const errorDetail = errObj?.description || errObj?.message || rzErr?.description || rzErr?.message || (typeof err === 'string' ? err : 'Failed to create payment order.');
+      logger.error('[PaymentService] Razorpay order creation failed:', err);
+      throw new Error(`Razorpay Error: ${errorDetail}`);
     }
 
-    const paymentRecord = {
-      id: `pay_${Date.now()}`,
-      userId,
-      courseId,
-      amount,
-      razorpayOrderId: order.id,
-      status: 'created' as const,
-    };
-
-    // Attempt to persist in PostgreSQL if valid user ID is provided
-    if (userId !== 'temp-user') {
-      try {
-        await db.insert(payments).values({
-          userId,
-          courseId,
-          amount,
-          razorpayOrderId: order.id,
-          status: 'created',
-        });
-      } catch (dbErr) {
-        logger.warn('[PaymentService] Failed to insert payment record in DB:', dbErr);
-      }
+    // Always persist payment record in DB
+    try {
+      await db.insert(payments).values({
+        userId,
+        courseId,
+        amount,
+        razorpayOrderId: order.id,
+        status: 'created',
+      });
+    } catch (dbErr) {
+      logger.error('[PaymentService] Failed to insert payment record in DB:', dbErr);
+      throw new Error('Failed to save payment record. Please try again.');
     }
 
-    return { order, paymentRecord };
+    return { order };
   }
 
   async verifyWebhook(body: string, signature: string) {

@@ -13,7 +13,15 @@ export function handleApiError(error: unknown) {
   }
 
   if (error instanceof Error) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    const isProd = process.env.NODE_ENV === 'production';
+    const msgLower = error.message.toLowerCase();
+    const containsSensitiveInfo = msgLower.includes('sql') || msgLower.includes('database') || msgLower.includes('secret') || msgLower.includes('password') || msgLower.includes('token') || msgLower.includes('connect');
+    
+    const message = isProd && containsSensitiveInfo
+      ? 'An internal processing error occurred. Please try again later.'
+      : error.message;
+
+    return NextResponse.json({ success: false, message }, { status: 400 });
   }
   
   return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });

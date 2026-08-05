@@ -48,6 +48,11 @@ export async function GET(req: NextRequest) {
 
         return {
           ...course,
+          imageUrl: course.imageUrl
+            ? (course.imageUrl.startsWith('http')
+              ? course.imageUrl
+              : `/api/courses/${course.id}/thumbnail`)
+            : null,
           lessons: lessons.map(l => ({
             id: l.id,
             title: l.title,

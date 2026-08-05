@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Plus, Trash2, BookOpen, X, Loader2, Check, HardDrive, Image as ImageIcon, FileText, FileArchive, Video as VideoIcon, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, BookOpen, X, Loader2, Check, HardDrive, Image as ImageIcon, FileText, FileArchive, Video as VideoIcon, ChevronDown, ChevronUp, AlertCircle, Pencil, Save } from 'lucide-react';
 import { R2FileUpload } from '@/components/admin/R2FileUpload';
 import { LessonManager } from '@/components/admin/LessonManager';
 
@@ -13,6 +13,7 @@ interface CourseData {
   originalPrice: number | null;
   category: string | null;
   status: string;
+  imageUrl: string | null;
   downloadUrl: string | null;
   lessonCount?: number;
 }
@@ -50,6 +51,14 @@ export default function AdminCoursesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
+
+  // Edit state
+  const [editCourse, setEditCourse] = useState<CourseData | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '', description: '', price: '', originalPrice: '', category: '', status: 'published',
+  });
+  const [editThumbnailKey, setEditThumbnailKey] = useState<string>('');
+  const [editSaving, setEditSaving] = useState(false);
 
   // Uploaded R2 Object Keys & Metadata tracking for course assets
   const [thumbnailKey, setThumbnailKey] = useState<string>('');
@@ -233,6 +242,52 @@ export default function AdminCoursesPage() {
       fetchCourses();
     } catch { /* ignore */ }
     setDeleteId(null);
+  };
+
+  const openEditModal = (course: CourseData) => {
+    setEditCourse(course);
+    setEditForm({
+      title: course.title,
+      description: course.description,
+      price: String(course.price / 100),
+      originalPrice: course.originalPrice ? String(course.originalPrice / 100) : '',
+      category: course.category || '',
+      status: course.status,
+    });
+    setEditThumbnailKey('');
+  };
+
+  const handleEditSave = async () => {
+    if (!editCourse) return;
+    setEditSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        title: editForm.title,
+        description: editForm.description,
+        price: Math.round(parseFloat(editForm.price) * 100),
+        originalPrice: editForm.originalPrice ? Math.round(parseFloat(editForm.originalPrice) * 100) : null,
+        category: editForm.category || null,
+        status: editForm.status,
+      };
+      if (editThumbnailKey) {
+        payload.imageUrl = editThumbnailKey;
+      }
+      const res = await fetch(`/api/admin/courses/${editCourse.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditCourse(null);
+        fetchCourses();
+      } else {
+        alert(data.message || 'Failed to update course');
+      }
+    } catch {
+      alert('Error updating course');
+    }
+    setEditSaving(false);
   };
 
   const handleToggleStatus = async (course: CourseData) => {
@@ -706,6 +761,17 @@ export default function AdminCoursesPage() {
                         textTransform: 'capitalize', cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
                       }}>{course.status}</button>
 
+                      <button onClick={(e) => { e.stopPropagation(); openEditModal(course); }}
+                        style={{
+                          width: '32px', height: '32px', borderRadius: '8px',
+                          background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        }}
+                        title="Edit course"
+                      >
+                        <Pencil style={{ width: 14, height: 14, color: '#A855F7' }} />
+                      </button>
+
                       <button onClick={(e) => { e.stopPropagation(); handleDelete(course.id); }} disabled={deleteId === course.id}
                         style={{
                           width: '32px', height: '32px', borderRadius: '8px',
@@ -737,6 +803,191 @@ export default function AdminCoursesPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Course Modal */}
+      {editCourse && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '2rem',
+          }}
+          onClick={() => !editSaving && setEditCourse(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'linear-gradient(145deg, rgba(30,20,60,0.98) 0%, rgba(18,10,36,0.99) 100%)',
+              border: '1px solid rgba(168,85,247,0.25)', borderRadius: '20px',
+              padding: '2rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#eef0f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Pencil style={{ width: 20, height: 20, color: '#A855F7' }} /> Edit Course
+              </h3>
+              <button
+                onClick={() => !editSaving && setEditCourse(null)}
+                disabled={editSaving}
+                style={{
+                  width: 32, height: 32, borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.05)', color: '#a89ec8', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
+                }}
+              >
+                <X style={{ width: 18, height: 18 }} />
+              </button>
+            </div>
+
+            {/* Edit Form Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={labelStyle}>Course Title *</label>
+                <input
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  style={inputStyle}
+                  placeholder="Course title"
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Description *</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={4}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                  placeholder="Course description"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Price (₹) *</label>
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                    style={inputStyle}
+                    placeholder="4999"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Original Price (₹)</label>
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={editForm.originalPrice}
+                    onChange={(e) => setEditForm({ ...editForm, originalPrice: e.target.value })}
+                    style={inputStyle}
+                    placeholder="9999"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Category</label>
+                  <input
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                    style={inputStyle}
+                    placeholder="e.g. Video Editing"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    <option value="published" style={{ background: '#120A24' }}>Published</option>
+                    <option value="draft" style={{ background: '#120A24' }}>Draft</option>
+                    <option value="archived" style={{ background: '#120A24' }}>Archived</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Thumbnail Upload */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem' }}>
+                <label style={labelStyle}>Replace Thumbnail (optional)</label>
+                {editCourse.imageUrl && !editThumbnailKey && (
+                  <div style={{
+                    marginBottom: '0.75rem', borderRadius: '10px', overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.08)', maxWidth: '200px',
+                  }}>
+                    <img
+                      src={editCourse.imageUrl.startsWith('http') || editCourse.imageUrl.startsWith('/api')
+                        ? editCourse.imageUrl
+                        : `/api/courses/${editCourse.id}/thumbnail`}
+                      alt="Current thumbnail"
+                      style={{ width: '100%', height: 'auto', display: 'block' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <p style={{ fontSize: '0.7rem', color: '#a89ec8', padding: '0.375rem 0.5rem', background: 'rgba(255,255,255,0.03)' }}>
+                      Current thumbnail
+                    </p>
+                  </div>
+                )}
+                {editThumbnailKey && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem',
+                    padding: '0.625rem 0.875rem', background: 'rgba(74,222,128,0.08)',
+                    border: '1px solid rgba(74,222,128,0.25)', borderRadius: '10px',
+                  }}>
+                    <Check style={{ width: 16, height: 16, color: '#4ade80' }} />
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#4ade80' }}>New thumbnail uploaded</span>
+                  </div>
+                )}
+                <R2FileUpload
+                  label="Upload New Thumbnail"
+                  accept="image/*"
+                  maxSizeMB={10}
+                  assetType="thumbnail"
+                  onUploadSuccess={(data) => setEditThumbnailKey(data.objectKey)}
+                />
+              </div>
+            </div>
+
+            {/* Save / Cancel */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving || !editForm.title || !editForm.description || !editForm.price}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  padding: '0.875rem', background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                  border: 'none', borderRadius: '12px', color: '#fff', fontSize: '0.9375rem', fontWeight: 800,
+                  cursor: editSaving ? 'not-allowed' : 'pointer', opacity: editSaving ? 0.7 : 1,
+                  boxShadow: '0 4px 20px rgba(168,85,247,0.4)', fontFamily: "'Poppins', sans-serif",
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {editSaving
+                  ? <><Loader2 style={{ width: 18, height: 18, animation: 'spin 0.8s linear infinite' }} /> Saving...</>
+                  : <><Save style={{ width: 18, height: 18 }} /> Save Changes</>
+                }
+              </button>
+              <button
+                onClick={() => setEditCourse(null)}
+                disabled={editSaving}
+                style={{
+                  padding: '0.875rem 1.5rem', background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+                  color: '#a89ec8', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                  fontFamily: "'Poppins', sans-serif",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

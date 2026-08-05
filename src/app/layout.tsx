@@ -15,9 +15,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+
 export const metadata: Metadata = {
   title: "Sushant Ghadge | Content Creation Masterclass",
-  description: "Learn content creation from Sushant Ghadge",
+  description: "Learn professional content creation, storytelling, video editing, and viral marketing directly from Sushant Ghadge.",
+  openGraph: {
+    title: "Sushant Ghadge | Content Creation Masterclass",
+    description: "Master the art of viral content creation and digital entrepreneurship with Sushant Ghadge's exclusive masterclass.",
+    url: "https://sushantghadge.com",
+    siteName: "Sushant Ghadge Masterclass",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sushant Ghadge | Content Creation Masterclass",
+    description: "Learn content creation from Sushant Ghadge",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -36,6 +55,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}>
         <LanguageProvider>
           <AuthProvider>
+            <OfflineIndicator />
             {children}
           </AuthProvider>
         </LanguageProvider>

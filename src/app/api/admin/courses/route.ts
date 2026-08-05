@@ -6,15 +6,33 @@ import { AssetRepository } from '@/repositories/asset.repository';
 import { LessonRepository } from '@/repositories/lesson.repository';
 import { logger } from '@/lib/logger';
 import { desc } from 'drizzle-orm';
+import { jwtVerify } from 'jose';
 
 export const dynamic = 'force-dynamic';
 
 const assetRepo = new AssetRepository();
 const lessonRepo = new LessonRepository();
 
-// GET all courses (admin)
-export async function GET() {
+async function verifyAdminAuth(req: NextRequest) {
+  const token = req.cookies.get('admin_token')?.value || req.headers.get('authorization')?.replace('Bearer ', '');
+  if (!token) throw new Error('Unauthorized');
   try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+    const { payload } = await jwtVerify(token, secret);
+    const role = payload.role as string;
+    if (!['super_admin', 'admin', 'content_manager', 'support', 'finance_manager'].includes(role)) {
+      throw new Error('Forbidden');
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message === 'Forbidden') throw err;
+    throw new Error('Unauthorized');
+  }
+}
+
+// GET all courses (admin)
+export async function GET(req: NextRequest) {
+  try {
+    await verifyAdminAuth(req);
     const allCourses = await db.select().from(courses).orderBy(desc(courses.createdAt));
 
     // Enrich each course with lesson count
@@ -27,6 +45,9 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: enriched });
   } catch (error) {
+    if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+      return NextResponse.json({ success: false, message: error.message }, { status: error.message === 'Forbidden' ? 403 : 401 });
+    }
     logger.error('Error fetching courses:', error);
     return NextResponse.json({ success: false, message: 'Failed to fetch courses' }, { status: 500 });
   }
@@ -35,6 +56,7 @@ export async function GET() {
 // POST create a new course along with staged lesson MP4 videos
 export async function POST(req: NextRequest) {
   try {
+    await verifyAdminAuth(req);
     const formData = await req.formData();
 
     const title = formData.get('title') as string;
@@ -131,6 +153,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newCourse }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+      return NextResponse.json({ success: false, message: error.message }, { status: error.message === 'Forbidden' ? 403 : 401 });
+    }
     logger.error('Error creating course:', error);
     return NextResponse.json({ success: false, message: 'Failed to create course' }, { status: 500 });
   }

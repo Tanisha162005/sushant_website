@@ -92,7 +92,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
 
     // Prevent passing invalid fields directly into db set
-    const { status, title, description, price, originalPrice, category } = body;
+    const { status, title, description, price, originalPrice, category, imageUrl } = body;
     const updatePayload: Record<string, unknown> = { updatedAt: new Date() };
 
     if (status !== undefined) updatePayload.status = status;
@@ -101,6 +101,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (price !== undefined) updatePayload.price = price;
     if (originalPrice !== undefined) updatePayload.originalPrice = originalPrice;
     if (category !== undefined) updatePayload.category = category;
+    if (imageUrl !== undefined) updatePayload.imageUrl = imageUrl;
 
     const result = await db
       .update(courses)
