@@ -132,7 +132,7 @@ export const Course = () => {
 
       // Step 2: Open Razorpay checkout
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+        key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
         amount: data.order.amount,
         currency: data.order.currency,
         name: 'Sushant Ghadge Masterclass',

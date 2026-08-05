@@ -30,7 +30,8 @@ export class PaymentController {
 
       // Derive authenticated user exclusively from verified JWT session
       const result = await paymentService.createOrder(userId, courseId);
-      return NextResponse.json({ success: true, ...result }, { status: 200 });
+      const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      return NextResponse.json({ success: true, ...result, keyId }, { status: 200 });
     } catch (error) {
       return handleApiError(error);
     }
