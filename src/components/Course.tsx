@@ -39,28 +39,62 @@ export const Course = () => {
         }
       })
       .catch(() => {});
+  }, []);
 
-    // Check backend for user's purchased courses (for lifetime unlimited access across devices)
+  // Sync purchases specifically for the active authenticated user
+  useEffect(() => {
+    if (!user) {
+      // User is logged out or unauthenticated; clear purchased states
+      setPurchasedCourseIds([]);
+      setPurchasedUserId(null);
+      return;
+    }
+
+    // Check localStorage first for instant UI loading, ONLY if cached userId matches current logged-in user
+    const savedPurchases = localStorage.getItem('purchased_courses');
+    if (savedPurchases) {
+      try {
+        const parsed = JSON.parse(savedPurchases);
+        if (parsed.userId === user.id) {
+          setPurchasedCourseIds(Array.from(new Set(parsed.courseIds || [])));
+          setPurchasedUserId(user.id);
+        } else {
+          // Cache belongs to a different or previous account; discard it immediately
+          localStorage.removeItem('purchased_courses');
+          setPurchasedCourseIds([]);
+          setPurchasedUserId(null);
+        }
+      } catch {
+        localStorage.removeItem('purchased_courses');
+        setPurchasedCourseIds([]);
+        setPurchasedUserId(null);
+      }
+    } else {
+      setPurchasedCourseIds([]);
+      setPurchasedUserId(null);
+    }
+
+    // Check backend for verified purchases of the current user
     fetch('/api/user/purchases')
       .then((r) => r.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           const dbPurchasedIds = data.data.map((c: CourseData) => c.id);
-          setPurchasedCourseIds((prev) => Array.from(new Set([...prev, ...dbPurchasedIds])));
+          setPurchasedCourseIds((prev) => {
+            const updated = Array.from(new Set([...prev, ...dbPurchasedIds]));
+            localStorage.setItem('purchased_courses', JSON.stringify({ courseIds: updated, userId: user.id }));
+            return updated;
+          });
+          setPurchasedUserId(user.id);
+        } else {
+          // If backend reports no purchases for this user, ensure local state and cache are clean
+          setPurchasedCourseIds([]);
+          setPurchasedUserId(user.id);
+          localStorage.removeItem('purchased_courses');
         }
       })
       .catch(() => {});
-
-    // Check if user already purchased (from localStorage for instant offline feedback)
-    const savedPurchases = localStorage.getItem('purchased_courses');
-    if (savedPurchases) {
-      try {
-        const parsed = JSON.parse(savedPurchases);
-        setPurchasedCourseIds((prev) => Array.from(new Set([...prev, ...(parsed.courseIds || [])])));
-        if (parsed.userId) setPurchasedUserId(parsed.userId);
-      } catch {}
-    }
-  }, []);
+  }, [user]);
 
   const handlePayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

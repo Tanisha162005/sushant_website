@@ -92,7 +92,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {}
+      localStorage.removeItem('purchased_courses');
+    } catch {
+      try {
+        localStorage.removeItem('purchased_courses');
+      } catch {}
+    }
     setUser(null);
   };
 
