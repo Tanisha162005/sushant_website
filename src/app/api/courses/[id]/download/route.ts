@@ -130,7 +130,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // 4. Generate 10-minute presigned R2 download URL
     let signedUrl: string;
     try {
-      signedUrl = await generateSignedDownloadUrl(objectKey, 600);
+      signedUrl = await generateSignedDownloadUrl(objectKey, 600, {
+        filename: downloadFilename,
+        forceDownload: true,
+      });
     } catch (r2Err) {
       logger.error('Failed to generate R2 signed download URL:', r2Err);
       return NextResponse.json(

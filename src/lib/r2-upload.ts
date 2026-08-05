@@ -263,7 +263,8 @@ export async function createPresignedUploadUrl(
  */
 export async function generateSignedDownloadUrl(
   objectKey: string,
-  expiresInSec: number = 600
+  expiresInSec: number = 600,
+  options?: { filename?: string | null; forceDownload?: boolean }
 ): Promise<string> {
   const bucketName = getR2BucketName();
   const client = getR2Client();
@@ -276,10 +277,21 @@ export async function generateSignedDownloadUrl(
     // First verify the object exists
     await client.send(command);
 
-    const getCommand = new GetObjectCommand({
+    const getParams: { Bucket: string; Key: string; ResponseContentDisposition?: string } = {
       Bucket: bucketName,
       Key: objectKey,
-    });
+    };
+
+    if (options?.forceDownload) {
+      const rawName = options.filename || objectKey.split('/').pop() || 'download.mp4';
+      // Fallback ASCII filename (replaces non-ascii and slashes with underscores)
+      const asciiName = rawName.replace(/[^\x20-\x7E]/g, '_').replace(/[/\\]/g, '_');
+      // Full UTF-8 encoded filename according to RFC 5987/6266
+      const utf8Name = encodeURIComponent(rawName);
+      getParams.ResponseContentDisposition = `attachment; filename="${asciiName}"; filename*=UTF-8''${utf8Name}`;
+    }
+
+    const getCommand = new GetObjectCommand(getParams);
 
     const signedUrl = await getSignedUrl(client, getCommand, {
       expiresIn: expiresInSec,
