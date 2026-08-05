@@ -6,7 +6,6 @@ const requiredEnvVars = [
   'RAZORPAY_KEY_SECRET',
   'JWT_SECRET',
   'R2_BUCKET_NAME',
-  'R2_REGION',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
 ];
