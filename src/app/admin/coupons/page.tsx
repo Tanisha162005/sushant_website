@@ -50,12 +50,8 @@ export default async function AdminCouponsPage() {
               border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px',
               padding: '1.25rem', transition: 'all 0.3s ease',
             }}
-            onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
-              e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)';
-            }}
-            onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-            }}>
+            className="hover:border-purple-500/20"
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <code style={{
                   fontSize: '1rem', fontWeight: 800, color: '#D8B4FE',

@@ -56,8 +56,7 @@ export default async function AdminTicketsPage() {
                 border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px',
                 padding: '1.25rem', transition: 'all 0.3s ease', cursor: 'pointer',
               }}
-              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'}
-              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
+              className="hover:border-purple-500/20"
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.75rem' }}>
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#eef0f6', margin: 0 }}>{ticket.subject}</h3>

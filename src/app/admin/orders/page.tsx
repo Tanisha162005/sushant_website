@@ -77,8 +77,7 @@ export default async function AdminOrdersPage() {
                       borderBottom: '1px solid rgba(255,255,255,0.04)',
                       transition: 'background 0.2s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    className="hover:bg-white/5"
                     >
                       <td style={{ padding: '1rem 1.25rem' }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#a89ec8', fontFamily: 'monospace' }}>
