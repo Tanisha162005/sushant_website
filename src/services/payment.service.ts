@@ -14,6 +14,7 @@ export class PaymentService {
     if (!course) throw new Error('Course not found');
     
     const amount = course.price;
+    if (amount < 100) throw new Error('Amount must be at least 100 paise');
 
     // Razorpay has a strict 40-character maximum limit on receipt ID
     const receipt = `rcpt_${Date.now().toString(36)}_${courseId.slice(-8)}`;
