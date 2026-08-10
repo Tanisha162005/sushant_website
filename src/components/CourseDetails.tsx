@@ -16,10 +16,28 @@ interface CourseDetailsProps {
 }
 
 export const CourseDetails = ({ course }: CourseDetailsProps) => {
+  const renderTitle = (title: string) => {
+    const separator = title.includes('–') ? '–' : title.includes('-') ? '-' : null;
+    if (separator) {
+      const parts = title.split(separator);
+      const main = parts[0].trim();
+      const sub = parts.slice(1).join(separator).trim();
+      return (
+        <>
+          {main}
+          <span style={{ display: 'block', fontSize: '70%', color: 'rgba(255,255,255,0.7)', marginTop: '0.4rem', fontWeight: 700 }}>
+            {separator} {sub}
+          </span>
+        </>
+      );
+    }
+    return title;
+  };
+
   return (
     <div className="course-details">
       {/* Thumbnail for Left Column */}
-      <div className="course-details-main-img-container" style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '16px', overflow: 'hidden', marginBottom: '2rem', background: '#1e1b4b', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="course-details-main-img-container" style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '16px', overflow: 'hidden', margin: '0 auto 2rem auto', background: '#1e1b4b', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 15px 40px rgba(0,0,0,0.4)' }}>
         {course.imageUrl ? (
           <img src={course.imageUrl} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
@@ -31,23 +49,39 @@ export const CourseDetails = ({ course }: CourseDetailsProps) => {
           </div>
         )}
         {course.category && (
-          <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(168, 85, 247, 0.9)', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, backdropFilter: 'blur(4px)' }}>
+          <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(168, 85, 247, 0.9)', color: '#fff', padding: '6px 16px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, backdropFilter: 'blur(4px)', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
             {course.category}
           </div>
         )}
       </div>
 
       <div className="course-details-section" style={{ paddingTop: 0 }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginBottom: '1rem', lineHeight: 1.3 }}>
-          {course.title}
+        <h2 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#fff', marginBottom: '2rem', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+          {renderTitle(course.title)}
         </h2>
         
-        <div style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>
-          {course.description.split('\n').map((para, i) => (
-            <p key={i} style={{ marginBottom: '1rem' }}>
-              {para}
-            </p>
-          ))}
+        {/* Horizontal Flow Description */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+          {course.description.split('\n').map((para, i) => {
+            if (!para.trim()) return null;
+            
+            // Smart formatting: if it's a short point or a question, make it a nice card. 
+            // If it's a long paragraph, let it span full width.
+            const isCard = para.length < 120 && (para.includes('?') || para.trim().startsWith('-'));
+            
+            return (
+              <div key={i} style={{ 
+                flex: isCard ? '1 1 calc(50% - 1rem)' : '1 1 100%',
+                background: isCard ? 'rgba(255,255,255,0.03)' : 'transparent',
+                padding: isCard ? '1.25rem' : '0',
+                borderRadius: '12px',
+                border: isCard ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                marginBottom: isCard ? '0' : '1rem'
+              }}>
+                {para}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -58,22 +58,18 @@ export const About = () => {
             <div className="journey-timeline reveal reveal-delay-2">
               <div className="journey-step">
                 <div className="journey-dot" />
-                <div className="journey-year">2018</div>
                 <div className="journey-label">Started YouTube</div>
               </div>
               <div className="journey-step">
                 <div className="journey-dot" />
-                <div className="journey-year">2020</div>
                 <div className="journey-label">500K Subscribers</div>
               </div>
               <div className="journey-step">
                 <div className="journey-dot" />
-                <div className="journey-year">2022</div>
                 <div className="journey-label">150+ Brand Deals</div>
               </div>
               <div className="journey-step">
                 <div className="journey-dot" />
-                <div className="journey-year">2024</div>
                 <div className="journey-label">Masterclass Launch</div>
               </div>
             </div>

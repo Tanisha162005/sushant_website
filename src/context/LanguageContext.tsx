@@ -12,8 +12,8 @@ interface LanguageContextType {
 
 const translations = {
   mr: {
-    heroLine1: 'तुमच्यातील क्रिएटरला द्या',
-    heroLine2: 'एक प्रोफेशनल दिशा',
+    heroLine1: 'तुमच्यातील क्रिएटरला',
+    heroLine2: 'द्या एक प्रोफेशनल दिशा',
     heroSubtitle: 'मराठीतून उच्च दर्जाची स्टोरीटेलिंग आणि व्हिडिओ प्रोडक्शन शिका. भारतातील सर्वात मोठ्या ब्रँड्समागील सिक्रेट्स जाणून घ्या.',
     joinCourse: 'कोर्स जॉईन करा',
     viewCourse: 'कोर्स पहा',

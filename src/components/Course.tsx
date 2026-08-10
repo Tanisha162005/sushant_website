@@ -215,7 +215,24 @@ export const Course = () => {
         <div className="container">
           <div className="section-header reveal">
             <span className="section-tag">{t('courseTag')}</span>
-            <h2 className="section-title">{t('courseTitle')}</h2>
+            <h2 className="section-title" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              {(() => {
+                const titleStr = t('courseTitle') as string;
+                const separator = titleStr.includes('–') ? '–' : titleStr.includes('-') ? '-' : null;
+                if (separator) {
+                  const parts = titleStr.split(separator);
+                  return (
+                    <>
+                      <span>{parts[0].trim()}</span>
+                      <span style={{ fontSize: '0.65em', color: '#a855f7', fontWeight: 700 }}>
+                        {separator} {parts.slice(1).join(separator).trim()}
+                      </span>
+                    </>
+                  );
+                }
+                return titleStr;
+              })()}
+            </h2>
             <p className="section-subtitle">{t('courseSubtitle')}</p>
           </div>
 

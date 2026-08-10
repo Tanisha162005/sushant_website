@@ -30,7 +30,7 @@ export const PurchaseCard = ({ course, isPurchased, isDownloading, onBuyClick, o
     <div className="purchase-card-wrapper">
       <div className="purchase-card">
         {/* Content */}
-        <div className="purchase-card-body">
+        <div className="purchase-card-body" style={{ paddingTop: '1.5rem' }}>
           {/* Title */}
           <h3 className="purchase-card-title" style={{ fontSize: '1.4rem' }}>Enroll Now</h3>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
@@ -78,3 +78,4 @@ export const PurchaseCard = ({ course, isPurchased, isDownloading, onBuyClick, o
     </div>
   );
 };
+
