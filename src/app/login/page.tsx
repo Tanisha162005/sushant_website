@@ -24,7 +24,7 @@ export default function LoginPage() {
     setSubmitting(false);
 
     if (res.success) {
-      router.push('/dashboard');
+      router.push('/');
     } else {
       setErrorMsg(res.message || 'Login failed. Please check your credentials.');
     }

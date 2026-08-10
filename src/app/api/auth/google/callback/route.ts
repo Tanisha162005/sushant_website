@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       .setExpirationTime('7d')
       .sign(secret);
 
-    const response = createCleanResponse(`${baseUrl}/dashboard`);
+    const response = createCleanResponse(`${baseUrl}/`);
     response.cookies.set({
       name: 'user_token',
       value: token,

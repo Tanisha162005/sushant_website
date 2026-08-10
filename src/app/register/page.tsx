@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setSubmitting(false);
 
     if (res.success) {
-      router.push('/dashboard');
+      router.push('/');
     } else {
       setErrorMsg(res.message || 'Registration failed. Please try again.');
     }
