@@ -39,7 +39,7 @@ export const VideoSection = () => {
           <div className="video-wrapper">
             <video
               ref={videoRef}
-              src="/ad_video.MOV"
+              src="/ad_video.mp4"
               width="100%"
               style={{ aspectRatio: '16/9', border: 'none', borderRadius: 'inherit', objectFit: 'cover' }}
               controls
