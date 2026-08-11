@@ -70,14 +70,7 @@ export const CourseDetails = ({ course }: CourseDetailsProps) => {
             const isCard = para.length < 120 && (para.includes('?') || para.trim().startsWith('-'));
             
             return (
-              <div key={i} style={{ 
-                flex: isCard ? '1 1 calc(50% - 1rem)' : '1 1 100%',
-                background: isCard ? 'rgba(255,255,255,0.03)' : 'transparent',
-                padding: isCard ? '1.25rem' : '0',
-                borderRadius: '12px',
-                border: isCard ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                marginBottom: isCard ? '0' : '1rem'
-              }}>
+              <div key={i} className={`course-detail-desc-card ${isCard ? 'is-card' : 'is-full'}`}>
                 {para}
               </div>
             );

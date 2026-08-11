@@ -3815,6 +3815,22 @@ section {
   min-width: 0;
 }
 
+.floating-course-buy-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.floating-course-buy-price {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #facc15;
+  white-space: nowrap;
+  text-shadow: 0 0 12px rgba(250, 204, 21, 0.5), 0 0 24px rgba(250, 204, 21, 0.2);
+  letter-spacing: 0.5px;
+}
+
 .floating-course-buy-btn {
   flex-shrink: 0;
   padding: 10px 24px;
@@ -3830,11 +3846,17 @@ section {
   text-decoration: none;
   display: inline-block;
   white-space: nowrap;
+  font-family: inherit;
 }
 
-.floating-course-buy-btn:hover {
+.floating-course-buy-btn:hover:not(:disabled) {
   box-shadow: 0 8px 30px rgba(168, 85, 247, 0.6);
   transform: translateY(-2px) scale(1.02);
+}
+
+.floating-course-buy-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 /* Shine sweep */
@@ -5449,4 +5471,28 @@ section {
 @keyframes pulseBackdrop {
   0%, 100% { filter: blur(50px); opacity: 0.7; transform: rotateX(55deg) scale(0.95); }
   50% { filter: blur(70px); opacity: 1; transform: rotateX(55deg) scale(1.15); }
+}
+/* ===== COURSE DETAILS RESPONSIVE CARDS ===== */
+.course-detail-desc-card {
+  border-radius: 12px;
+}
+.course-detail-desc-card.is-full {
+  flex: 1 1 100%;
+  background: transparent;
+  padding: 0;
+  border: none;
+  margin-bottom: 1rem;
+}
+.course-detail-desc-card.is-card {
+  flex: 1 1 calc(50% - 1rem);
+  background: rgba(255,255,255,0.03);
+  padding: 1.25rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 0;
+}
+@media (max-width: 768px) {
+  .course-detail-desc-card.is-card {
+    flex: 1 1 100%;
+    margin-bottom: 1rem;
+  }
 }

@@ -1,11 +1,16 @@
 'use client';
 import { Background3D } from './Background3D';
 import { FloatingCourseCard } from './FloatingCourseCard';
+import type { CourseData } from './FloatingCourseCard';
 import { useLanguage } from '@/context/LanguageContext';
 
 import Spline from '@splinetool/react-spline';
 
-export const Hero = () => {
+interface HeroProps {
+  initialCourse?: CourseData | null;
+}
+
+export const Hero = ({ initialCourse }: HeroProps) => {
   const { t } = useLanguage();
 
   const line1Words = (t('heroLine1') as string).split(' ');
@@ -98,7 +103,7 @@ export const Hero = () => {
             </p>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', position: 'relative', zIndex: 20 }}>
+            <div className="hero-buttons" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', position: 'relative', zIndex: 20 }}>
               <a
                 href="#course"
                 onClick={(e) => {
@@ -175,7 +180,7 @@ export const Hero = () => {
 
           {/* Right — Floating 3D Course Card */}
           <div className="hero-split-card" style={{ position: 'relative', zIndex: 10 }}>
-            <FloatingCourseCard />
+            <FloatingCourseCard initialCourse={initialCourse} />
           </div>
 
         </div>

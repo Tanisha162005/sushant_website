@@ -27,11 +27,11 @@ export const FAQ = () => {
           <p className="section-subtitle">{t('faqSubtitle')}</p>
         </div>
 
-        <div className="faq-container">
+        <div className="faq-container reveal">
           {faqs.map((faq, index) => (
             <div 
               key={index} 
-              className={`faq-item reveal ${index > 0 ? `reveal-delay-${index}` : ''} ${openIndex === index ? 'active' : ''}`}
+              className={`faq-item ${openIndex === index ? 'active' : ''}`}
               onClick={() => toggleFaq(index)}
             >
               <div className="faq-question">

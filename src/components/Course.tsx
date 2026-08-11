@@ -262,7 +262,7 @@ export const Course = () => {
 
           {/* Additional courses below the featured one */}
           {courses.length > 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2.5rem', marginTop: '4rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2.5rem', marginTop: '4rem' }}>
               {courses.slice(1).map(course => {
                 const displayPrice = getDisplayPrice(course);
                 const originalPrice = getOriginalPrice(course);
