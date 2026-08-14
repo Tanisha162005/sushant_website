@@ -105,7 +105,15 @@ export async function GET(req: NextRequest) {
       .setExpirationTime('7d')
       .sign(secret);
 
-    const response = createCleanResponse(`${baseUrl}/`);
+    // Return a 200 HTML page with JS redirect instead of 302 to prevent mobile Chrome reload bugs
+    const response = new NextResponse(
+      `<html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="background:#0a0a0a;display:flex;justify-content:center;align-items:center;height:100vh;color:white;font-family:sans-serif;">Authenticating...<script>window.location.replace('/');</script></body></html>`,
+      {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      }
+    );
+    response.cookies.delete('g_oauth_state');
     response.cookies.set({
       name: 'user_token',
       value: token,
