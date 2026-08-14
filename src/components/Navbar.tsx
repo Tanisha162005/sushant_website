@@ -93,17 +93,18 @@ export const Navbar = () => {
             maxWidth: '80rem',
             margin: '0 auto',
             width: '100%',
-            padding: '1.25rem 2.5rem',
+            padding: '1.25rem clamp(1rem, 4vw, 2.5rem)',
           }}
         >
           {/* Logo — Gradient first letter */}
           <Link href="/" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
             <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
             <span style={{
-              fontSize: '1.6rem',
+              fontSize: 'clamp(1rem, 3.5vw, 1.4rem)',
               fontWeight: 900,
               letterSpacing: '-0.025em',
               color: '#fff',
+              whiteSpace: 'nowrap',
             }}>
               <span style={{
                 background: 'linear-gradient(135deg, #A855F7, #D8B4FE)',
