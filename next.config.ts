@@ -20,6 +20,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.sushantghadge.com',
+          },
+        ],
+        destination: 'https://sushantghadge.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
