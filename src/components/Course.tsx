@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { PurchaseCard } from './PurchaseCard';
 import { CourseDetails } from './CourseDetails';
 import { MobileStickyBuy } from './MobileStickyBuy';
+import Image from 'next/image';
 
 interface CourseData {
   id: string;
@@ -28,6 +29,7 @@ export const Course = () => {
   const { user } = useAuth();
   const router = useRouter();
   const purchaseCardRef = useRef<HTMLDivElement>(null);
+  const hasFetchedPurchases = useRef<string | null>(null);
 
   // Load published courses from backend
   useEffect(() => {
@@ -47,8 +49,12 @@ export const Course = () => {
       // User is logged out or unauthenticated; clear purchased states
       setPurchasedCourseIds([]);
       setPurchasedUserId(null);
+      hasFetchedPurchases.current = null;
       return;
     }
+
+    if (hasFetchedPurchases.current === user.id) return;
+    hasFetchedPurchases.current = user.id;
 
     // Check localStorage first for instant UI loading, ONLY if cached userId matches current logged-in user
     const savedPurchases = localStorage.getItem('purchased_courses');
@@ -96,6 +102,28 @@ export const Course = () => {
       .catch(() => {});
   }, [user]);
 
+  // Handle browser back button for checkout modal
+  useEffect(() => {
+    if (buyingCourse) {
+      window.history.pushState({ modal: 'checkout' }, '');
+      const handlePopState = (e: PopStateEvent) => {
+        if (!e.state || e.state.modal !== 'checkout') {
+          setBuyingCourse(null);
+        }
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [buyingCourse]);
+
+  const handleCloseModal = () => {
+    if (paymentProcessing) return;
+    setBuyingCourse(null);
+    if (window.history.state?.modal === 'checkout') {
+      window.history.back();
+    }
+  };
+
   const handlePayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (paymentProcessing) return;
@@ -120,13 +148,18 @@ export const Course = () => {
 
     setPaymentProcessing(true);
 
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 seconds timeout
+
     try {
       // Step 1: Create Razorpay order on server using real user ID
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, courseId: buyingCourse.id })
+        body: JSON.stringify({ userId: user.id, courseId: buyingCourse.id, clientAmount: buyingCourse.price }),
+        signal: abortController.signal
       });
+      clearTimeout(timeoutId);
       const data = await res.json();
       if (!data.success) throw new Error(data.message || 'Failed to create order');
 
@@ -138,6 +171,7 @@ export const Course = () => {
         name: 'Sushant Ghadge Masterclass',
         description: buyingCourse.title,
         order_id: data.order.id,
+        callback_url: `${window.location.origin}/api/payments/callback`,
         handler: async function (response: Record<string, string>) {
           try {
             // Step 3: Verify payment signature on server
@@ -188,8 +222,11 @@ export const Course = () => {
       const rzp = new (window as unknown as Record<string, new (opts: unknown) => { open: () => void }>).Razorpay(options);
       rzp.open();
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment initialization failed. Please try again.';
+      const errorMessage = error instanceof Error 
+        ? (error.name === 'AbortError' ? 'Payment initialization timed out. Please check your internet connection and try again.' : error.message)
+        : 'Payment initialization failed. Please try again.';
       alert(`Error: ${errorMessage}`);
       setPaymentProcessing(false);
     }
@@ -276,7 +313,7 @@ export const Course = () => {
                     {/* Thumbnail */}
                     <div style={{ position: 'relative', height: '220px', backgroundColor: '#1e1b4b', overflow: 'hidden' }}>
                       {course.imageUrl ? (
-                        <img src={course.imageUrl} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} unoptimized />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b5e88', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           No Image Available
@@ -339,9 +376,9 @@ export const Course = () => {
 
       {/* Payment Modal */}
       {buyingCourse && (
-        <div className="payment-overlay active" style={{ display: 'flex' }}>
-          <div className="payment-modal active">
-            <button className="payment-modal-close" onClick={() => !paymentProcessing && setBuyingCourse(null)} aria-label="Close" disabled={paymentProcessing}>&times;</button>
+        <div className="payment-overlay active" style={{ display: 'flex' }} onClick={handleCloseModal}>
+          <div className="payment-modal active" onClick={(e) => e.stopPropagation()}>
+            <button className="payment-modal-close" onClick={handleCloseModal} aria-label="Close" disabled={paymentProcessing}>&times;</button>
             <div className="payment-modal-header">
               <div className="payment-modal-icon">🎬</div>
               <h3>{buyingCourse.title}</h3>
@@ -357,22 +394,27 @@ export const Course = () => {
             )}
             <form className="payment-form" onSubmit={handlePayment}>
               <div className="payment-field">
-                <label htmlFor="pay-name">Your Name</label>
+                <label htmlFor="pay-name">Your Name <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span></label>
                 <input type="text" id="pay-name" name="name" placeholder="Name" required minLength={2} defaultValue={user?.name || ''} />
               </div>
               <div className="payment-field">
-                <label htmlFor="pay-email">Email</label>
+                <label htmlFor="pay-email">Email <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span></label>
                 <input type="email" id="pay-email" name="email" placeholder="example@email.com" required defaultValue={user?.email || ''} />
               </div>
               <div className="payment-field">
-                <label htmlFor="pay-phone">Phone</label>
+                <label htmlFor="pay-phone">Phone <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span></label>
                 <input type="tel" id="pay-phone" name="phone" placeholder="10-digit mobile number" required pattern="[6-9][0-9]{9}" maxLength={10} />
               </div>
-              <button type="submit" className="btn-primary btn-glow payment-submit-btn" disabled={paymentProcessing}>
-                <span className="btn-icon">{paymentProcessing ? '⏳' : '🔒'}</span>
-                <span className="payment-btn-text">{paymentProcessing ? 'Processing...' : `Pay ₹${getDisplayPrice(buyingCourse).toLocaleString()} Securely`}</span>
-                <span className="btn-shine"></span>
-              </button>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                <button type="button" onClick={handleCloseModal} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.3s' }} disabled={paymentProcessing}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary btn-glow payment-submit-btn" disabled={paymentProcessing} style={{ flex: 1, margin: 0 }}>
+                  <span className="btn-icon">{paymentProcessing ? '⏳' : '🔒'}</span>
+                  <span className="payment-btn-text">{paymentProcessing ? 'Processing...' : `Pay ₹${getDisplayPrice(buyingCourse).toLocaleString()} Securely`}</span>
+                  <span className="btn-shine"></span>
+                </button>
+              </div>
               <p className="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
             </form>
           </div>

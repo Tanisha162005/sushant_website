@@ -32,9 +32,11 @@ export const PurchaseCard = ({ course, isPurchased, isDownloading, onBuyClick, o
         {/* Content */}
         <div className="purchase-card-body" style={{ paddingTop: '1.5rem' }}>
           {/* Title */}
-          <h3 className="purchase-card-title" style={{ fontSize: '1.4rem' }}>Enroll Now</h3>
+          <h3 className="purchase-card-title" style={{ fontSize: '1.4rem' }}>
+            {isPurchased ? 'Access Your Course' : 'Enroll Now'}
+          </h3>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-            Get instant lifetime access to the course materials.
+            {isPurchased ? 'You have successfully enrolled in this course.' : 'Get instant lifetime access to the course materials.'}
           </p>
 
           {/* Pricing */}

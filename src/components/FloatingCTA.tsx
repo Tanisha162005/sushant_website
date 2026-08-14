@@ -5,28 +5,34 @@ export const FloatingCTA = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      const heroEnd = window.innerHeight;
-      const courseSection = document.getElementById('course');
-      const courseRect = courseSection?.getBoundingClientRect();
-      
-      const pastHero = window.scrollY > heroEnd;
-      const courseVisible = courseRect && courseRect.top < window.innerHeight && courseRect.bottom > 0;
-      
-      setVisible(pastHero && !courseVisible);
-      ticking = false;
+    let isPastHero = false;
+    let isCourseVisible = false;
+
+    const updateVisibility = () => {
+      setVisible(isPastHero && !isCourseVisible);
     };
 
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(handleScroll);
-        ticking = true;
-      }
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target.id === 'home') {
+            isPastHero = !entry.isIntersecting;
+          } else if (entry.target.id === 'course') {
+            isCourseVisible = entry.isIntersecting;
+          }
+        });
+        updateVisibility();
+      },
+      { threshold: 0 } // Trigger as soon as 1px is visible/hidden
+    );
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const homeEl = document.getElementById('home');
+    const courseEl = document.getElementById('course');
+    
+    if (homeEl) observer.observe(homeEl);
+    if (courseEl) observer.observe(courseEl);
+
+    return () => observer.disconnect();
   }, []);
 
   return (

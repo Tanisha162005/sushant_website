@@ -9,6 +9,9 @@ export const Background3D = () => {
     if (!canvasRef.current) return;
 
     const isMobile = window.innerWidth < 768;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) return;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -16,6 +19,7 @@ export const Background3D = () => {
       canvas: canvasRef.current,
       antialias: !isMobile, // Disable antialias on mobile for performance
       alpha: true,
+      powerPreference: "high-performance",
     });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -34,7 +38,7 @@ export const Background3D = () => {
     scene.add(ambientLight);
 
     const particlesGeometry = new THREE.BufferGeometry();
-    const count = isMobile ? 50 : 300; // Significantly reduce particle count on mobile
+    const count = isMobile ? 20 : 300; // Significantly reduce particle count on mobile
     const positions = new Float32Array(count * 3);
 
     for (let i = 0; i < count * 3; i++) {
@@ -45,9 +49,22 @@ export const Background3D = () => {
     const particles = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particles);
 
+    let isVisible = true;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.target.id === 'home') {
+          isVisible = entry.isIntersecting;
+        }
+      });
+    }, { rootMargin: '200px' });
+    
+    const homeEl = document.getElementById('home');
+    if (homeEl) observer.observe(homeEl);
+
     let animationId: number;
     const animateThree = () => {
       animationId = requestAnimationFrame(animateThree);
+      if (!isVisible) return; // Skip rendering when out of view
       // Reduce animation speed on mobile to save CPU/GPU cycles
       particles.rotation.y += isMobile ? 0.0002 : 0.001;
       particles.rotation.x += isMobile ? 0.0001 : 0.0005;

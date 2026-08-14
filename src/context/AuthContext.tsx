@@ -35,7 +35,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUser = async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      // Use cache-busting timestamp to prevent aggressive mobile browser disk caching
+      const res = await fetch(`/api/auth/me?t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.user) {
         setUser(data.user);

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
+import Image from 'next/image';
 
 export interface CourseData {
   id: string;
@@ -42,6 +43,8 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
     const card = cardRef.current;
     if (!card) return;
 
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -77,13 +80,18 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
 
     setPaymentProcessing(true);
 
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 seconds timeout
+
     try {
       // Step 1: Create Razorpay order on server
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, courseId: course.id }),
+        body: JSON.stringify({ userId: user.id, courseId: course.id, clientAmount: course.price }),
+        signal: abortController.signal
       });
+      clearTimeout(timeoutId);
       const data = await res.json();
       if (!data.success) throw new Error(data.message || 'Failed to create order');
 
@@ -95,6 +103,7 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
         name: 'Sushant Ghadge Masterclass',
         description: course.title,
         order_id: data.order.id,
+        callback_url: `${window.location.origin}/api/payments/callback`,
         handler: async function (response: Record<string, string>) {
           try {
             // Step 3: Verify payment signature on server
@@ -150,8 +159,11 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
       const rzp = new (window as unknown as Record<string, new (opts: unknown) => { open: () => void }>).Razorpay(options);
       rzp.open();
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment initialization failed. Please try again.';
+      const errorMessage = error instanceof Error 
+        ? (error.name === 'AbortError' ? 'Payment initialization timed out. Please check your internet connection and try again.' : error.message)
+        : 'Payment initialization failed. Please try again.';
       alert(`Error: ${errorMessage}`);
       setPaymentProcessing(false);
     }
@@ -166,9 +178,9 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
     <div className="floating-course-card-container">
       <div ref={cardRef} className="floating-course-card">
         {/* Thumbnail */}
-        <div className="floating-course-thumb">
+        <div className="floating-course-thumb" style={{ position: 'relative' }}>
           {course.imageUrl ? (
-            <img src={course.imageUrl} alt={course.title} />
+            <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} unoptimized />
           ) : (
             <div className="floating-course-thumb-placeholder">
               <span>🎬</span>

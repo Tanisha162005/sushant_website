@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
+import Image from 'next/image';
 
 export const Navbar = () => {
   const { t, lang, toggleLang } = useLanguage();
@@ -11,7 +12,7 @@ export const Navbar = () => {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState('#home');
 
   const navLinks = [
@@ -28,24 +29,18 @@ export const Navbar = () => {
 
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      setScrolled(scrollY > 50);
+      setScrolled(prev => {
+        if (scrollY > 50 && !prev) return true;
+        if (scrollY <= 50 && prev) return false;
+        return prev;
+      });
 
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       const progress = docHeight > 0 ? (scrollY / docHeight) * 100 : 0;
-      setScrollProgress(progress);
-
-      const sections = ['home', 'about', 'video', 'course', 'brands', 'faq'];
-      let current = '#home';
-      for (const id of sections) {
-        const el = document.getElementById(id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 150) {
-            current = `#${id}`;
-          }
-        }
+      if (progressBarRef.current) {
+        progressBarRef.current.style.width = `${progress}%`;
       }
-      setActiveSection(current);
+      
       ticking = false;
     };
 
@@ -63,6 +58,29 @@ export const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    const sections = ['home', 'about', 'video', 'course', 'brands', 'faq'];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let maxVisible = 0;
+        let mostVisibleSection = '';
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(`#${entry.target.id}`);
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -50% 0px', threshold: 0 }
+    );
+
+    sections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [mobileMenuOpen]);
@@ -78,7 +96,7 @@ export const Navbar = () => {
   return (
     <>
       {/* Scroll Progress Bar */}
-      <div className="scroll-progress-bar" style={{ width: `${scrollProgress}%` }} />
+      <div ref={progressBarRef} className="scroll-progress-bar" style={{ width: '0%' }} />
 
       <nav
         style={{
@@ -108,7 +126,7 @@ export const Navbar = () => {
         >
           {/* Logo — Gradient first letter */}
           <Link href="/" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
-            <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+            <Image src="/logo.png" alt="Sushant Ghadge Logo" width={150} height={36} style={{ height: '36px', width: 'auto', objectFit: 'contain' }} priority />
             <span style={{
               fontSize: 'clamp(1rem, 3.5vw, 1.4rem)',
               fontWeight: 900,
@@ -282,6 +300,26 @@ export const Navbar = () => {
 
           {/* Mobile Right */}
           <div className="flex md:hidden" style={{ alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 60 }}>
+            {user && (
+              <Link href="/dashboard" style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: '#a855f7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#fff',
+                textDecoration: 'none',
+                border: '1px solid rgba(255,255,255,0.2)',
+                boxShadow: '0 0 10px rgba(168, 85, 247, 0.4)'
+              }}>
+                {user.name.charAt(0).toUpperCase()}
+              </Link>
+            )}
+
             <div
               onClick={toggleLang}
               style={{

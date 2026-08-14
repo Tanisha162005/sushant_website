@@ -23,13 +23,13 @@ export class PaymentController {
         return NextResponse.json({ success: false, message: 'Unauthorized: Invalid authentication session' }, { status: 401 });
       }
 
-      const { courseId } = await req.json();
+      const { courseId, clientAmount } = await req.json();
       if (!courseId) {
         return NextResponse.json({ success: false, message: 'Course ID is required' }, { status: 400 });
       }
 
       // Derive authenticated user exclusively from verified JWT session
-      const result = await paymentService.createOrder(userId, courseId);
+      const result = await paymentService.createOrder(userId, courseId, clientAmount);
       const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
       return NextResponse.json({ success: true, ...result, keyId }, { status: 200 });
     } catch (error) {
