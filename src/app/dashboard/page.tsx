@@ -207,7 +207,7 @@ export default function DashboardPage() {
             background: 'linear-gradient(90deg, #34D399 0%, #3B82F6 50%, #60A5FA 100%)',
           }} />
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px' }}>
+          <div className="dashboard-header-flex">
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <div style={{
                 width: '64px', height: '64px', borderRadius: '18px',
@@ -242,7 +242,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div className="dashboard-actions-flex">
               <Link href="/" style={{
                 padding: '12px 22px', fontSize: '0.85rem', fontWeight: 600, borderRadius: '12px',
                 background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -263,7 +263,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Executive Tabbed Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '36px' }}>
+        <div className="dashboard-layout">
 
           {/* Sidebar */}
           <div>
@@ -326,13 +326,9 @@ export default function DashboardPage() {
                           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
                         }}>
                           {/* Course Header */}
-                          <div style={{ display: 'flex', gap: '24px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                          <div className="dashboard-course-card">
                             {course.imageUrl && (
-                              <div style={{
-                                width: '160px', height: '94px', borderRadius: '14px', overflow: 'hidden', flexShrink: 0,
-                                border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
-                                background: '#080A10',
-                              }}>
+                              <div className="dashboard-course-image">
                                 <img src={course.imageUrl} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               </div>
                             )}
@@ -691,7 +687,7 @@ export default function DashboardPage() {
                 </div>
 
                 {purchasedCoursesList.length > 0 ? (
-                  <div style={{ borderRadius: '20px', overflow: 'hidden', background: 'linear-gradient(145deg, #131824 0%, #0D111A 100%)', border: '1px solid rgba(255, 255, 255, 0.09)', boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
+                  <div className="dashboard-table-wrapper">
                     <table style={{ width: '100%', textAlign: 'left', fontSize: '0.88rem', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
