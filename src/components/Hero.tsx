@@ -26,7 +26,7 @@ export const Hero = ({ initialCourse }: HeroProps) => {
         style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
       ></div>
 
-      <div className="new-hero-layer new-hero-section" id="home" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '3rem' }}>
+      <div className="new-hero-layer new-hero-section hero-main-wrapper" id="home">
         
         {/* Decorative 3D Floating Elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
@@ -102,80 +102,8 @@ export const Hero = ({ initialCourse }: HeroProps) => {
               {t('heroSubtitle')}
             </p>
 
-            {/* Action Buttons */}
-            <div className="hero-buttons" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', position: 'relative', zIndex: 20 }}>
-              <a
-                href="#course"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('course')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="new-btn-glow"
-                style={{
-                  backgroundColor: '#ffffff',
-                  color: '#000000',
-                  padding: '1rem 2.5rem',
-                  borderRadius: '9999px',
-                  fontWeight: 700,
-                  fontSize: '1.05rem',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  boxShadow: '0 10px 25px -5px rgba(255, 255, 255, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 20px 35px -5px rgba(255, 255, 255, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(255, 255, 255, 0.3)';
-                }}
-              >
-                {t('viewCourse')}
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </a>
-              <a
-                href="#about"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(20px)',
-                  color: '#ffffff',
-                  padding: '1rem 2.5rem',
-                  borderRadius: '9999px',
-                  fontWeight: 600,
-                  fontSize: '1.05rem',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M10 8l6 4-6 4V8z" />
-                </svg>
-                {t('learnMore')}
-              </a>
-            </div>
+
+
           </div>
 
           {/* Right — Floating 3D Course Card */}

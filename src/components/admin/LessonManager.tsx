@@ -46,6 +46,10 @@ export function LessonManager({ courseId, courseSlug }: LessonManagerProps) {
   const [newDuration, setNewDuration] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Edit lesson state
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [editLessonTitle, setEditLessonTitle] = useState('');
+
   // Upload state per-lesson
   const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -111,22 +115,38 @@ export function LessonManager({ courseId, courseSlug }: LessonManagerProps) {
 
       // 3. Update lesson with new videoKey
       if (isReplace) {
-        await fetch(`/api/admin/courses/${courseId}/lessons/${lessonId}`, {
+        const res = await fetch(`/api/admin/courses/${courseId}/lessons/${lessonId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ videoKey: objectKey, fileSize: file.size }),
         });
+        if (res.ok) fetchLessons();
       }
 
       setUploadingLessonId(null);
       setUploadProgress(100);
       return objectKey;
     } catch (err) {
-      activeXhrRef.current = null;
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
       setUploadingLessonId(null);
-      const msg = err instanceof Error ? err.message : 'Upload failed';
-      setUploadError(msg);
-      throw err;
+    }
+  };
+
+  const handleSaveEdit = async (lessonId: string) => {
+    if (!editLessonTitle.trim()) return;
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}/lessons/${lessonId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editLessonTitle }),
+      });
+      if (res.ok) {
+        setEditingLessonId(null);
+        fetchLessons();
+      }
+    } catch (err) {
+      console.error('Failed to update lesson', err);
     }
   };
 
@@ -343,9 +363,41 @@ export function LessonManager({ courseId, courseSlug }: LessonManagerProps) {
 
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#eef0f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {lesson.title}
-                </p>
+                {editingLessonId === lesson.id ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      value={editLessonTitle}
+                      onChange={(e) => setEditLessonTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveEdit(lesson.id);
+                        if (e.key === 'Escape') setEditingLessonId(null);
+                      }}
+                      autoFocus
+                      style={{
+                        background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(168,85,247,0.4)',
+                        color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8125rem',
+                        width: '100%', outline: 'none'
+                      }}
+                    />
+                    <button onClick={() => handleSaveEdit(lesson.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ADE80' }}>
+                      <Check style={{ width: 14, height: 14 }} />
+                    </button>
+                    <button onClick={() => setEditingLessonId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F87171' }}>
+                      <X style={{ width: 14, height: 14 }} />
+                    </button>
+                  </div>
+                ) : (
+                  <p 
+                    onDoubleClick={() => {
+                      setEditingLessonId(lesson.id);
+                      setEditLessonTitle(lesson.title);
+                    }}
+                    style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#eef0f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'text' }}
+                    title="Double-click to edit title"
+                  >
+                    {lesson.title}
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.125rem', fontSize: '0.6875rem', color: '#6b5e88' }}>
                   <span>{formatDuration(lesson.duration)}</span>
                   <span>{formatSize(lesson.fileSize)}</span>

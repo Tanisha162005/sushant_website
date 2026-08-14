@@ -261,11 +261,14 @@ export default function AdminCoursesPage() {
     if (!editCourse) return;
     setEditSaving(true);
     try {
-      const payload: Record<string, unknown> = {
+      const parsedPrice = parseFloat(editForm.price);
+      const parsedOriginal = parseFloat(editForm.originalPrice);
+      
+      const payload: Record<string, any> = {
         title: editForm.title,
         description: editForm.description,
-        price: Math.round(parseFloat(editForm.price) * 100),
-        originalPrice: editForm.originalPrice ? Math.round(parseFloat(editForm.originalPrice) * 100) : null,
+        price: isNaN(parsedPrice) ? 0 : Math.round(parsedPrice * 100),
+        originalPrice: isNaN(parsedOriginal) ? null : Math.round(parsedOriginal * 100),
         category: editForm.category || null,
         status: editForm.status,
       };

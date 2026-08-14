@@ -3594,6 +3594,34 @@ section {
   animation: heroWordReveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* ===== HERO MAIN WRAPPER ===== */
+.hero-main-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  padding-top: 7rem;
+  padding-bottom: 3rem;
+}
+
+@media (max-width: 991px) {
+  .hero-main-wrapper {
+    min-height: auto;
+    padding-top: 5.5rem;
+    padding-bottom: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-main-wrapper {
+    padding-top: 5rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
 /* ===== HERO SPLIT LAYOUT ===== */
 .hero-split-layout {
   width: 100%;
@@ -3620,7 +3648,7 @@ section {
 @media (max-width: 991px) {
   .hero-split-layout {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
+    gap: 1.5rem;
   }
 
   .hero-split-text {
@@ -3630,6 +3658,7 @@ section {
 
   .hero-split-card {
     justify-content: center;
+    margin-top: -0.5rem;
   }
 }
 
@@ -3877,14 +3906,71 @@ section {
   100% { left: 100%; }
 }
 
-/* Responsive */
-@media (max-width: 640px) {
+/* Responsive — Tablet */
+@media (max-width: 991px) {
   .floating-course-card {
-    width: 260px;
+    width: 420px;
+    max-width: 92vw;
   }
 
   .floating-course-card-container {
-    margin-top: 2.5rem;
+    margin-top: 0;
+  }
+
+  .floating-course-card-container::before,
+  .floating-course-card-container::after {
+    width: 420px;
+    max-width: 92vw;
+  }
+}
+
+/* Responsive — Mobile */
+@media (max-width: 640px) {
+  .floating-course-card {
+    width: 78vw;
+    max-width: 340px;
+    border-radius: 18px;
+  }
+
+  .floating-course-card-container {
+    margin-top: 0;
+    width: 100%;
+  }
+
+  .floating-course-card-container::before,
+  .floating-course-card-container::after {
+    display: none;
+  }
+
+  .floating-course-thumb {
+    aspect-ratio: 16 / 9;
+  }
+
+  .floating-course-price-current {
+    font-size: 1.3rem;
+  }
+
+  .floating-course-price-old {
+    font-size: 0.8rem;
+  }
+
+  .floating-course-bottom {
+    padding: 10px 14px;
+    gap: 0.5rem;
+  }
+
+  .floating-course-name {
+    font-size: 0.85rem;
+  }
+
+  .floating-course-buy-price {
+    font-size: 1.2rem;
+  }
+
+  .floating-course-buy-btn {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    border-radius: 10px;
   }
 }
 
@@ -5496,3 +5582,4 @@ section {
     margin-bottom: 1rem;
   }
 }
+

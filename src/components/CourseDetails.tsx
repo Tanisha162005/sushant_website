@@ -80,3 +80,4 @@ export const CourseDetails = ({ course }: CourseDetailsProps) => {
     </div>
   );
 };
+

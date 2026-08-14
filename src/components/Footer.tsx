@@ -75,7 +75,6 @@ export const Footer = () => {
             <div className="footer-links">
               <h4>{t('footerContact')}</h4>
               <a href="mailto:sushanthelpcreators@gmail.com">{t('footerEmail')}</a>
-              <a href="https://www.instagram.com/sushant_helps_creators_?igsh=MjM5aWN4bW5mbDli&utm_source=qr" target="_blank" rel="noreferrer">Instagram DM</a>
               
               {/* Newsletter */}
               <h4 style={{ marginTop: '2rem' }}>Stay Updated</h4>
