@@ -428,16 +428,13 @@ export default function DashboardPage() {
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {course.lessons!.map((lesson, idx) => (
-                                  <div key={lesson.id} style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '16px 20px', borderRadius: '14px',
+                                  <div key={lesson.id} className="dashboard-list-item" style={{
                                     background: 'linear-gradient(90deg, rgba(30, 37, 56, 0.5) 0%, rgba(20, 26, 40, 0.8) 100%)',
                                     border: '1px solid rgba(255, 255, 255, 0.07)',
                                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
                                     transition: 'all 0.25s',
-                                    gap: '16px',
                                   }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
+                                    <div className="dashboard-list-item-content" style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
                                       <span style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         width: '36px', height: '36px', borderRadius: '10px',
@@ -632,8 +629,8 @@ export default function DashboardPage() {
                             )}
 
                             {hasLessons && course.lessons!.map((lesson, idx) => (
-                              <div key={lesson.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                              <div key={lesson.id} className="dashboard-list-item" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div className="dashboard-list-item-content" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                   <PlayCircle style={{ width: 20, height: 20, color: '#34D399' }} />
                                   <div>
                                     <p style={{ fontWeight: 700, fontSize: '0.92rem', color: '#FFFFFF' }}>{idx + 1}. {lesson.title}</p>

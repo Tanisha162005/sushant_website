@@ -5668,3 +5668,27 @@ section {
 .dashboard-table-wrapper table {
   min-width: 600px; /* forces horizontal scroll on mobile */
 }
+}
+
+.dashboard-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  .dashboard-list-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dashboard-list-item > button {
+    width: 100%;
+    justify-content: center;
+  }
+  .dashboard-list-item-content {
+    width: 100%;
+  }
+  .dashboard-list-item-content p {
+    white-space: normal !important;
+  }
+}
