@@ -23,34 +23,44 @@ export const Navbar = () => {
     { href: '#faq', label: t('footerFaq') },
   ];
 
-  const handleScroll = useCallback(() => {
-    setScrolled(window.scrollY > 50);
+  useEffect(() => {
+    let ticking = false;
 
-    // Scroll progress
-    const scrollTop = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    setScrollProgress(progress);
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setScrolled(scrollY > 50);
 
-    // Active section detection
-    const sections = navLinks.map(l => l.href.replace('#', ''));
-    let current = '#home';
-    for (const id of sections) {
-      const el = document.getElementById(id);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        if (rect.top <= 150) {
-          current = `#${id}`;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollY / docHeight) * 100 : 0;
+      setScrollProgress(progress);
+
+      const sections = ['home', 'about', 'video', 'course', 'brands', 'faq'];
+      let current = '#home';
+      for (const id of sections) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 150) {
+            current = `#${id}`;
+          }
         }
       }
-    }
-    setActiveSection(current);
-  }, []);
+      setActiveSection(current);
+      ticking = false;
+    };
 
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(handleScroll);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    handleScroll(); // Trigger once on mount
+
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';

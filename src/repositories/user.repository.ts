@@ -34,4 +34,13 @@ export class UserRepository {
     }).returning();
     return result[0];
   }
+
+  async updateGoogleId(userId: string, googleId: string, avatarUrl?: string) {
+    const updateData: any = { googleId };
+    if (avatarUrl) {
+      updateData.avatarUrl = avatarUrl;
+    }
+    const result = await db.update(users).set(updateData).where(eq(users.id, userId)).returning();
+    return result[0] || null;
+  }
 }

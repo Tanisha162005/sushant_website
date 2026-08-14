@@ -77,6 +77,12 @@ export async function GET(req: NextRequest) {
       user = await userRepo.findByEmail(googleUser.email);
       if (user) {
         // Link Google account
+        if (!user.googleId) {
+          user = await userRepo.updateGoogleId(user.id, googleUser.id, googleUser.picture);
+        } else if (user.googleId !== googleUser.id) {
+          console.error(`Email ${user.email} is already linked to a different Google account.`);
+          return createCleanResponse(`${baseUrl}/login?error=account_already_linked`);
+        }
       } else {
         user = await userRepo.create({
           name: googleUser.name || googleUser.email.split('@')[0],

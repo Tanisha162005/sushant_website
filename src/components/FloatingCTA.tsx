@@ -5,6 +5,7 @@ export const FloatingCTA = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
       const heroEnd = window.innerHeight;
       const courseSection = document.getElementById('course');
@@ -14,10 +15,18 @@ export const FloatingCTA = () => {
       const courseVisible = courseRect && courseRect.top < window.innerHeight && courseRect.bottom > 0;
       
       setVisible(pastHero && !courseVisible);
+      ticking = false;
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(handleScroll);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (

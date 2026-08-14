@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { courses, payments, courseAssets, courseLessons } from '@/db/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, inArray } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 
 export const dynamic = 'force-dynamic';
@@ -30,47 +30,54 @@ export async function GET(req: NextRequest) {
       .where(and(eq(payments.userId, userId), eq(payments.status, 'successful')));
 
     const purchasedCourses = userPurchases.map(p => p.course);
+    if (purchasedCourses.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    const courseIds = purchasedCourses.map(c => c.id);
+
+    // Fetch all lessons and assets in 2 queries instead of 2 * N queries
+    const [allLessons, allAssets] = await Promise.all([
+      db
+        .select()
+        .from(courseLessons)
+        .where(inArray(courseLessons.courseId, courseIds))
+        .orderBy(asc(courseLessons.displayOrder)),
+      db
+        .select()
+        .from(courseAssets)
+        .where(inArray(courseAssets.courseId, courseIds)),
+    ]);
 
     // Enrich each course with lessons and assets
-    const enriched = await Promise.all(
-      purchasedCourses.map(async (course) => {
-        const [lessons, assets] = await Promise.all([
-          db
-            .select()
-            .from(courseLessons)
-            .where(eq(courseLessons.courseId, course.id))
-            .orderBy(asc(courseLessons.displayOrder)),
-          db
-            .select()
-            .from(courseAssets)
-            .where(eq(courseAssets.courseId, course.id)),
-        ]);
+    const enriched = purchasedCourses.map((course) => {
+      const lessons = allLessons.filter(l => l.courseId === course.id);
+      const assets = allAssets.filter(a => a.courseId === course.id);
 
-        return {
-          ...course,
-          imageUrl: course.imageUrl
-            ? (course.imageUrl.startsWith('http')
-              ? course.imageUrl
-              : `/api/courses/${course.id}/thumbnail`)
-            : null,
-          lessons: lessons.map(l => ({
-            id: l.id,
-            title: l.title,
-            description: l.description,
-            duration: l.duration,
-            fileSize: l.fileSize,
-            displayOrder: l.displayOrder,
+      return {
+        ...course,
+        imageUrl: course.imageUrl
+          ? (course.imageUrl.startsWith('http')
+            ? course.imageUrl
+            : `/api/courses/${course.id}/thumbnail`)
+          : null,
+        lessons: lessons.map(l => ({
+          id: l.id,
+          title: l.title,
+          description: l.description,
+          duration: l.duration,
+          fileSize: l.fileSize,
+          displayOrder: l.displayOrder,
+        })),
+        assets: assets
+          .filter(a => a.assetType === 'pdf' || a.assetType === 'zip')
+          .map(a => ({
+            assetType: a.assetType,
+            filename: a.filename,
+            size: a.size,
           })),
-          assets: assets
-            .filter(a => a.assetType === 'pdf' || a.assetType === 'zip')
-            .map(a => ({
-              assetType: a.assetType,
-              filename: a.filename,
-              size: a.size,
-            })),
-        };
-      })
-    );
+      };
+    });
 
     return NextResponse.json({ success: true, data: enriched });
   } catch (error) {

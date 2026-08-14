@@ -5,13 +5,22 @@ export const FloatingElements = () => {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
       setScrollY(window.scrollY);
+      ticking = false;
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    // Trigger once on mount
+    
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(handleScroll);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
