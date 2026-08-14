@@ -49,7 +49,7 @@ export const CourseDetails = ({ course }: CourseDetailsProps) => {
           </div>
         )}
         {course.category && (
-          <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(168, 85, 247, 0.9)', color: '#fff', padding: '6px 16px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, backdropFilter: 'blur(4px)', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
+          <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(168, 85, 247, 0.9)', color: '#fff', padding: '6px 16px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
             {course.category}
           </div>
         )}

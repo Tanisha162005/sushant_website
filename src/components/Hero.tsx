@@ -52,6 +52,7 @@ export const Hero = ({ initialCourse }: HeroProps) => {
               fontWeight: 600,
               color: '#e5e7eb',
               backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
             }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6', boxShadow: '0 0 10px #3b82f6', animation: 'pulse 2s infinite' }}></span>

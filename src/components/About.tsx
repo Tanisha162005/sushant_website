@@ -58,7 +58,7 @@ export const About = () => {
             <div className="journey-timeline reveal reveal-delay-2">
               <div className="journey-step">
                 <div className="journey-dot" />
-                <div className="journey-label">Started YouTube</div>
+                <div className="journey-label">1 Billion+ Views</div>
               </div>
               <div className="journey-step">
                 <div className="journey-dot" />
@@ -70,7 +70,7 @@ export const About = () => {
               </div>
               <div className="journey-step">
                 <div className="journey-dot" />
-                <div className="journey-label">Masterclass Launch</div>
+                <div className="journey-label">Created 1000+ Videos</div>
               </div>
             </div>
 
