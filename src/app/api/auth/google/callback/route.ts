@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get('state');
   const error = searchParams.get('error');
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const isDev = process.env.NODE_ENV === 'development';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (isDev ? 'http://localhost:3000' : 'https://sushantghadge.com');
 
   // 1. Validate CSRF state parameter against HTTP-only cookie
   const storedState = req.cookies.get('g_oauth_state')?.value;

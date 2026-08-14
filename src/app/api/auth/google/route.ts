@@ -3,7 +3,8 @@ import crypto from 'crypto';
 
 export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const isDev = process.env.NODE_ENV === 'development';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (isDev ? 'http://localhost:3000' : 'https://sushantghadge.com');
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
   if (!clientId) {
