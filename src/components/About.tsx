@@ -22,7 +22,7 @@ export const About = () => {
             <div className="perspective-container">
               <div className="about-image-card tilt-3d">
                 <img
-                  src="/logo.png"
+                  src="/about-profile.jpeg"
                   alt="Sushant Ghadge"
                   className="about-image"
                   style={{
