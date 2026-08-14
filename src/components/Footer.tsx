@@ -76,7 +76,7 @@ export const Footer = () => {
             </div>
             <div className="footer-links">
               <h4>{t('footerContact')}</h4>
-              <a href="mailto:sushanthelpcreators@gmail.com">{t('footerEmail')}</a>
+              <a href="mailto:sushanthelpcreators@gmail.com">Mail at: sushanthelpcreators@gmail.com</a>
               
               {/* Newsletter */}
               <h4 style={{ marginTop: '2rem' }}>Stay Updated</h4>
