@@ -49,9 +49,11 @@ export const Footer = () => {
             <div className="footer-brand">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'block' }} />
-                <h3 style={{ margin: 0 }}>{lang === 'mr' ? 'सुशांत घाडगे' : 'Sushant Ghadge'}</h3>
               </div>
-              <p>
+              <a href="mailto:sushanthelpcreators@gmail.com" style={{ color: '#c084fc', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>
+                sushanthelpcreators@gmail.com
+              </a>
+              <p style={{ marginTop: '0.75rem' }}>
                 {t('footerDesc')}
               </p>
               {/* Social Icons */}
