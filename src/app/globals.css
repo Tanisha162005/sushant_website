@@ -5584,6 +5584,7 @@ section {
 @media (max-width: 768px) {
   .course-detail-desc-card.is-card {
     flex: 1 1 100%;
+    margin-bottom: 1rem;
   }
 }
 
@@ -5667,7 +5668,3 @@ section {
 .dashboard-table-wrapper table {
   min-width: 600px; /* forces horizontal scroll on mobile */
 }
-    margin-bottom: 1rem;
-  }
-}
-
