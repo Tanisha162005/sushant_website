@@ -271,16 +271,16 @@ export const Navbar = () => {
           </div>
 
           {/* Mobile Right */}
-          <div className="flex md:hidden" style={{ alignItems: 'center', gap: '0.75rem', position: 'relative', zIndex: 60 }}>
+          <div className="flex md:hidden" style={{ alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 60 }}>
             <div
               onClick={toggleLang}
               style={{
-                fontSize: '10px',
+                fontSize: '11px',
                 border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: '9999px',
-                padding: '0.2rem 0.5rem',
+                padding: '0.25rem 0.6rem',
                 display: 'flex',
-                gap: '0.375rem',
+                gap: '0.5rem',
                 fontWeight: 700,
                 backgroundColor: 'rgba(255,255,255,0.05)',
                 cursor: 'pointer',
@@ -300,12 +300,13 @@ export const Navbar = () => {
                 flexDirection: 'column',
                 gap: '5px',
                 padding: '4px',
+                zIndex: 60,
               }}
               aria-label="Menu"
             >
-              <span style={{ display: 'block', width: '22px', height: '2px', backgroundColor: '#fff', borderRadius: '2px', transition: 'all 0.3s', transform: mobileMenuOpen ? 'rotate(45deg) translateY(7px)' : 'none' }} />
-              <span style={{ display: 'block', width: '22px', height: '2px', backgroundColor: '#fff', borderRadius: '2px', transition: 'all 0.3s', opacity: mobileMenuOpen ? 0 : 1 }} />
-              <span style={{ display: 'block', width: '22px', height: '2px', backgroundColor: '#fff', borderRadius: '2px', transition: 'all 0.3s', transform: mobileMenuOpen ? 'rotate(-45deg) translateY(-7px)' : 'none' }} />
+              <span style={{ display: 'block', width: '24px', height: '2px', backgroundColor: '#fff', borderRadius: '2px', transition: 'all 0.3s', transform: mobileMenuOpen ? 'translateY(7px) rotate(45deg)' : 'none' }} />
+              <span style={{ display: 'block', width: '24px', height: '2px', backgroundColor: '#fff', borderRadius: '2px', transition: 'all 0.3s', opacity: mobileMenuOpen ? 0 : 1 }} />
+              <span style={{ display: 'block', width: '24px', height: '2px', backgroundColor: '#fff', borderRadius: '2px', transition: 'all 0.3s', transform: mobileMenuOpen ? 'translateY(-7px) rotate(-45deg)' : 'none' }} />
             </button>
           </div>
         </div>
@@ -313,25 +314,29 @@ export const Navbar = () => {
 
       {/* Mobile Menu Overlay */}
       <div
+        className="md:hidden"
         style={{
           position: 'fixed',
           inset: 0,
+          height: '100vh',
+          minHeight: '-webkit-fill-available',
           zIndex: 40,
-          backgroundColor: 'rgba(5, 10, 24, 0.97)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          backgroundColor: 'rgba(5, 10, 24, 0.98)',
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '1.5rem',
-          transition: 'opacity 0.4s ease',
+          gap: '2.5rem',
+          padding: '6rem 2rem 3rem',
+          transition: 'all 0.4s ease-in-out',
           opacity: mobileMenuOpen ? 1 : 0,
+          visibility: mobileMenuOpen ? 'visible' : 'hidden',
           pointerEvents: mobileMenuOpen ? 'auto' : 'none',
         }}
-        className="md:hidden"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center', width: '100%' }}>
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -344,65 +349,81 @@ export const Navbar = () => {
                 closeMenu();
               }}
               style={{
-                fontSize: '1.25rem',
+                fontSize: '1.4rem',
                 fontWeight: 800,
-                color: activeSection === link.href ? '#c084fc' : '#fff',
+                color: activeSection === link.href ? '#c084fc' : '#f3f4f6',
                 textDecoration: 'none',
                 letterSpacing: '0.5px',
+                textAlign: 'center',
+                transition: 'color 0.2s',
               }}
             >
               {link.label}
             </a>
           ))}
         </div>
-        {user ? (
-          <Link
-            href="/dashboard"
-            onClick={closeMenu}
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginTop: 'auto', width: '100%' }}>
+          {user ? (
+            <Link
+              href="/dashboard"
+              onClick={closeMenu}
+              style={{
+                fontSize: '1.15rem',
+                fontWeight: 700,
+                color: '#c084fc',
+                textDecoration: 'none',
+                border: '1px solid rgba(192, 132, 252, 0.3)',
+                padding: '0.75rem 2rem',
+                borderRadius: '9999px',
+                width: '100%',
+                textAlign: 'center',
+              }}
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              onClick={closeMenu}
+              style={{
+                fontSize: '1.15rem',
+                fontWeight: 700,
+                color: '#fff',
+                textDecoration: 'none',
+                border: '1px solid rgba(255,255,255,0.2)',
+                padding: '0.75rem 2rem',
+                borderRadius: '9999px',
+                width: '100%',
+                textAlign: 'center',
+              }}
+            >
+              Sign In
+            </Link>
+          )}
+          <a
+            href="#course"
+            onClick={(e) => {
+              e.preventDefault();
+              closeMenu();
+              setTimeout(() => scrollTo('#course'), 300);
+            }}
             style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              color: '#c084fc',
+              background: 'linear-gradient(135deg, #9333ea, #6366f1)',
+              color: '#fff',
+              padding: '1rem 2rem',
+              borderRadius: '9999px',
+              fontSize: '1.15rem',
+              fontWeight: 800,
               textDecoration: 'none',
+              boxShadow: '0 0 25px rgba(147, 51, 234, 0.4)',
+              width: '100%',
+              textAlign: 'center',
             }}
           >
-            Dashboard ({user.name})
-          </Link>
-        ) : (
-          <Link
-            href="/login"
-            onClick={closeMenu}
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.85)',
-              textDecoration: 'none',
-            }}
-          >
-            Sign In
-          </Link>
-        )}
-        <a
-          href="#course"
-          onClick={(e) => {
-            e.preventDefault();
-            closeMenu();
-            setTimeout(() => scrollTo('#course'), 300);
-          }}
-          style={{
-            marginTop: '1rem',
-            background: 'linear-gradient(135deg, #9333ea, #6366f1)',
-            color: '#fff',
-            padding: '0.875rem 2.5rem',
-            borderRadius: '9999px',
-            fontSize: '1.125rem',
-            fontWeight: 800,
-            textDecoration: 'none',
-            boxShadow: '0 0 25px rgba(147, 51, 234, 0.4)',
-          }}
-        >
-          {t('joinCourse')}
-        </a>
+            {t('joinCourse')}
+          </a>
+        </div>
       </div>
     </>
   );
