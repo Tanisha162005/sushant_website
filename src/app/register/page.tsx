@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { register } = useAuth();
@@ -261,8 +262,9 @@ export default function RegisterPage() {
             }}>
               {t('password')}
             </label>
+            <div style={{ position: 'relative' }}>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               minLength={6}
               value={password}
@@ -271,7 +273,7 @@ export default function RegisterPage() {
               className="auth-input-glow"
               style={{
                 width: '100%',
-                padding: '14px 16px',
+                padding: '14px 48px 14px 16px',
                 borderRadius: '12px',
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -281,6 +283,22 @@ export default function RegisterPage() {
                 transition: 'all 0.2s',
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                color: '#9ca3af', fontSize: '0.8rem', fontWeight: 600,
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+            </div>
           </div>
 
           <button

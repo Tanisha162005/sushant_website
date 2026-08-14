@@ -8,6 +8,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -159,11 +160,11 @@ export default function AdminLoginPage() {
                   width: 18, height: 18, color: '#6b5e88',
                 }} />
                 <input
-                  type="password" required value={password}
+                  type={showPassword ? 'text' : 'password'} required value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   style={{
-                    width: '100%', padding: '0.875rem 0.875rem 0.875rem 2.75rem',
+                    width: '100%', padding: '0.875rem 2.75rem 0.875rem 2.75rem',
                     background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: '12px', color: '#eef0f6', fontSize: '0.875rem',
                     outline: 'none', transition: 'all 0.3s ease',
@@ -178,6 +179,21 @@ export default function AdminLoginPage() {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                    color: '#6b5e88', fontSize: '0.8rem', fontWeight: 600,
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = '#6b5e88')}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
               </div>
             </div>
 

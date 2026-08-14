@@ -9,6 +9,7 @@ import { Background3D } from '@/components/Background3D';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
@@ -231,15 +232,16 @@ export default function LoginPage() {
             }}>
               {t('password')}
             </label>
+            <div style={{ position: 'relative' }}>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               style={{
                 width: '100%',
-                padding: '14px 16px',
+                padding: '14px 48px 14px 16px',
                 borderRadius: '12px',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 background: 'rgba(255, 255, 255, 0.03)',
@@ -260,6 +262,22 @@ export default function LoginPage() {
                 e.target.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.2)';
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                color: '#9ca3af', fontSize: '0.8rem', fontWeight: 600,
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#c084fc')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+            </div>
           </div>
 
           <button
