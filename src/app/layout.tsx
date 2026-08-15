@@ -18,8 +18,12 @@ const geistMono = Geist_Mono({
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sushantghadge.com"),
   title: "Sushant Ghadge | Content Creation Masterclass",
   description: "Learn professional content creation, storytelling, video editing, and viral marketing directly from Sushant Ghadge.",
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Sushant Ghadge | Content Creation Masterclass",
     description: "Master the art of viral content creation and digital entrepreneurship with Sushant Ghadge's exclusive masterclass.",
@@ -51,6 +55,18 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Hind:wght@300;400;500;600;700&family=Baloo+2:wght@400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Person",
+              "name": "Sushant Ghadge",
+              "url": "https://sushantghadge.com",
+              "jobTitle": "Content Creator & Entrepreneur"
+            })
+          }}
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}>
         <LanguageProvider>

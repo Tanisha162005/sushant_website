@@ -11,19 +11,20 @@ export const Background3D = () => {
     const isMobile = window.innerWidth < 768;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (prefersReducedMotion) return;
+    // Completely disable Three.js on mobile to save battery and stop layout thrashing lag
+    if (prefersReducedMotion || isMobile) return;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
-      antialias: !isMobile, // Disable antialias on mobile for performance
+      antialias: false,
       alpha: true,
       powerPreference: "high-performance",
     });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     camera.position.z = 5;
 
     const mainLight = new THREE.DirectionalLight(0xffffff, 1);

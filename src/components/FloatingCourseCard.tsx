@@ -180,7 +180,7 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
         {/* Thumbnail */}
         <div className="floating-course-thumb" style={{ position: 'relative' }}>
           {course.imageUrl ? (
-            <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} unoptimized />
+            <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
           ) : (
             <div className="floating-course-thumb-placeholder">
               <span>🎬</span>

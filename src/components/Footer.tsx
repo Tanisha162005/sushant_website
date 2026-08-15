@@ -1,6 +1,6 @@
 'use client';
 import { useLanguage } from '@/context/LanguageContext';
-
+import Image from 'next/image';
 export const Footer = () => {
   const { t, lang } = useLanguage();
 
@@ -47,8 +47,8 @@ export const Footer = () => {
         <div className="container">
           <div className="footer-content">
             <div className="footer-brand">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                <img src="/logo.png" alt="Sushant Ghadge Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', position: 'relative', height: '40px', width: '150px' }}>
+                <Image src="/logo.png" alt="Sushant Ghadge Logo" fill sizes="150px" style={{ objectFit: 'contain' }} />
               </div>
               <a href="mailto:sushanthelpcreators@gmail.com" style={{ color: '#c084fc', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>
                 sushanthelpcreators@gmail.com

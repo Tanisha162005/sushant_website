@@ -44,8 +44,7 @@ export const FloatingElements = () => {
         style={{
           width: '400px', height: '400px',
           background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%)',
-          top: '-10%', left: '-5%',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)'
+          top: '-10%', left: '-5%'
         }}
       />
       
@@ -56,8 +55,7 @@ export const FloatingElements = () => {
         style={{
           width: '500px', height: '500px',
           background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%)',
-          top: '30%', right: '-10%',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)'
+          top: '30%', right: '-10%'
         }}
       />
 
@@ -70,8 +68,7 @@ export const FloatingElements = () => {
           width: '80px', height: '80px',
           border: '2px solid rgba(255, 255, 255, 0.4)',
           borderRadius: '16px',
-          top: '20%', left: '15%',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)'
+          top: '20%', left: '15%'
         }}
       />
 
@@ -83,8 +80,7 @@ export const FloatingElements = () => {
           width: '40px', height: '40px',
           border: '2px solid rgba(255, 255, 255, 0.5)',
           borderRadius: '50%',
-          top: '50%', left: '80%',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)'
+          top: '50%', left: '80%'
         }}
       />
 
@@ -98,7 +94,6 @@ export const FloatingElements = () => {
           backgroundColor: 'rgba(255, 255, 255, 0.5)',
           borderRadius: '9999px',
           top: '75%', left: '20%',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)',
           boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
         }}
       />
@@ -112,8 +107,7 @@ export const FloatingElements = () => {
           backgroundColor: '#fff',
           borderRadius: '50%',
           top: '10%', left: '85%',
-          boxShadow: '0 0 10px #fff',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)'
+          boxShadow: '0 0 10px #fff'
         }}
       />
       
@@ -126,8 +120,7 @@ export const FloatingElements = () => {
           backgroundColor: '#fff',
           borderRadius: '50%',
           top: '85%', left: '10%',
-          boxShadow: '0 0 10px #fff',
-          transition: 'transform 0.1s cubic-bezier(0.1, 0.5, 0.1, 1)'
+          boxShadow: '0 0 10px #fff'
         }}
       />
     </div>

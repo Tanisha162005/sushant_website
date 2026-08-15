@@ -17,10 +17,13 @@ interface CourseData {
   imageUrl?: string | null;
   downloadUrl: string | null;
 }
+interface CourseProps {
+  initialCourses?: CourseData[];
+}
 
-export const Course = () => {
+export const Course = ({ initialCourses = [] }: CourseProps) => {
   const [buyingCourse, setBuyingCourse] = useState<CourseData | null>(null);
-  const [courses, setCourses] = useState<CourseData[]>([]);
+  const [courses, setCourses] = useState<CourseData[]>(initialCourses);
   const [purchasedCourseIds, setPurchasedCourseIds] = useState<string[]>([]);
   const [purchasedUserId, setPurchasedUserId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -31,8 +34,9 @@ export const Course = () => {
   const purchaseCardRef = useRef<HTMLDivElement>(null);
   const hasFetchedPurchases = useRef<string | null>(null);
 
-  // Load published courses from backend
+  // Load published courses from backend only if not provided server-side
   useEffect(() => {
+    if (initialCourses.length > 0) return;
     fetch('/api/courses')
       .then(r => r.json())
       .then(data => {
@@ -41,7 +45,7 @@ export const Course = () => {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [initialCourses]);
 
   // Sync purchases specifically for the active authenticated user
   useEffect(() => {
@@ -313,7 +317,7 @@ export const Course = () => {
                     {/* Thumbnail */}
                     <div style={{ position: 'relative', height: '220px', backgroundColor: '#1e1b4b', overflow: 'hidden' }}>
                       {course.imageUrl ? (
-                        <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} unoptimized />
+                        <Image src={course.imageUrl} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b5e88', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                           No Image Available
