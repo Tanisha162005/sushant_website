@@ -24,6 +24,15 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icon.png' },
+    ],
+  },
   openGraph: {
     title: "Sushant Ghadge | Content Creation Masterclass",
     description: "Master the art of viral content creation and digital entrepreneurship with Sushant Ghadge's exclusive masterclass.",
@@ -31,11 +40,20 @@ export const metadata: Metadata = {
     siteName: "Sushant Ghadge Masterclass",
     locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: '/about-profile.jpeg',
+        width: 1200,
+        height: 630,
+        alt: 'Sushant Ghadge Masterclass',
+      }
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Sushant Ghadge | Content Creation Masterclass",
     description: "Learn content creation from Sushant Ghadge",
+    images: ['/about-profile.jpeg'],
   },
   robots: {
     index: true,
