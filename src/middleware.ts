@@ -58,6 +58,10 @@ export async function middleware(request: NextRequest) {
     if (
       pathname.startsWith('/_next') ||
       pathname.startsWith('/static') ||
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/dashboard') ||
       pathname === '/favicon.ico' ||
       pathname.endsWith('.png') ||
       pathname.endsWith('.svg') ||
@@ -67,7 +71,6 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/sitemap') ||
       pathname.endsWith('.xml') ||
       pathname.endsWith('.webmanifest') ||
-      pathname === '/api/subscribe' ||
       pathname === '/'
     ) {
       return NextResponse.next();
@@ -80,23 +83,23 @@ export async function middleware(request: NextRequest) {
   // Rate Limiting layer for public and sensitive API endpoints
   if (pathname.startsWith('/api')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || '127.0.0.1';
-    let limit = 200; // General API limit per minute
+    let limit = 600; // General API limit per minute
     let category = 'general_api';
 
     if (pathname.startsWith('/api/auth')) {
-      limit = 15; // Auth endpoints (login, register, Google callback)
+      limit = 100; // Auth endpoints (login, register, Google callback)
       category = 'auth_api';
     } else if (pathname.startsWith('/api/payments')) {
-      limit = 25; // Payment order creation & verification
+      limit = 100; // Payment order creation & verification
       category = 'payment_api';
     } else if (pathname === '/api/subscribe') {
-      limit = 10; // Newsletter & contact spam protection
+      limit = 30; // Newsletter & contact spam protection
       category = 'subscribe_api';
     } else if (pathname.includes('/download')) {
-      limit = 40; // Secure download abuse protection
+      limit = 100; // Secure download abuse protection
       category = 'download_api';
     } else if (pathname.startsWith('/api/admin') || pathname.startsWith('/api/upload') || pathname.startsWith('/api/r2')) {
-      limit = 120;
+      limit = 300;
       category = 'admin_api';
     }
 
@@ -134,8 +137,6 @@ export async function middleware(request: NextRequest) {
   // Live Mode: Normal Admin authentication logic
   // Check if the path is under /admin (but not /admin/login)
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    
-    // Attempt to get the token from cookies
     const token = request.cookies.get('admin_token')?.value;
 
     if (!token) {
@@ -143,23 +144,33 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      // Verify JWT using jose (since jsonwebtoken is not Edge compatible)
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
       const { payload } = await jwtVerify(token, secret);
-      
       const role = payload.role as string;
       const adminRoles = ['super_admin', 'admin', 'support', 'content_manager', 'finance_manager'];
       
       if (!adminRoles.includes(role)) {
          return NextResponse.redirect(new URL('/admin/login?error=unauthorized', request.url));
       }
-      
-      return NextResponse.next();
     } catch (error) {
       return NextResponse.redirect(new URL('/admin/login?error=invalid_token', request.url));
     }
   }
-  
+
+  // User Authentication Protection for Dashboard
+  if (pathname.startsWith('/dashboard')) {
+    const token = request.cookies.get('user_token')?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+      await jwtVerify(token, secret);
+    } catch {
+      return NextResponse.redirect(new URL('/login?error=invalid_token', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
