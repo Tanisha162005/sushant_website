@@ -15,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
-  register: (name: string, email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
+  register: (name: string, email: string, password?: string, phone?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -52,6 +52,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     fetchUser();
+    
+    const handleFocus = () => {
+      fetchUser();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const login = async (email: string, password?: string) => {
@@ -72,12 +79,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const register = async (name: string, email: string, password?: string) => {
+  const register = async (name: string, email: string, password?: string, phone: string = '') => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, phone }),
       });
       const data = await res.json();
       if (data.success && data.user) {

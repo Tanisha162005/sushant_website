@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -21,15 +21,25 @@ interface CourseProps {
   initialCourses?: CourseData[];
 }
 
+// Modal types for the purchase flow
+type ModalState =
+  | { type: 'none' }
+  | { type: 'auth-prompt'; course: CourseData }
+  | { type: 'phone-prompt'; course: CourseData }
+  | { type: 'already-purchased'; course: CourseData };
+
 export const Course = ({ initialCourses = [] }: CourseProps) => {
-  const [buyingCourse, setBuyingCourse] = useState<CourseData | null>(null);
   const [courses, setCourses] = useState<CourseData[]>(initialCourses);
   const [purchasedCourseIds, setPurchasedCourseIds] = useState<string[]>([]);
   const [purchasedUserId, setPurchasedUserId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [modalState, setModalState] = useState<ModalState>({ type: 'none' });
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [phoneSaving, setPhoneSaving] = useState(false);
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, refreshUser, loading } = useAuth();
   const router = useRouter();
   const purchaseCardRef = useRef<HTMLDivElement>(null);
   const hasFetchedPurchases = useRef<string | null>(null);
@@ -106,74 +116,64 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
       .catch(() => {});
   }, [user]);
 
+  // Clear stale modal state if user successfully authenticates
+  useEffect(() => {
+    if (user && modalState.type === 'auth-prompt') {
+      setModalState({ type: 'none' });
+    }
+  }, [user, modalState.type]);
+
   // Handle browser back button for checkout modal
   useEffect(() => {
-    if (buyingCourse) {
+    if (modalState.type !== 'none') {
       window.history.pushState({ modal: 'checkout' }, '');
       const handlePopState = (e: PopStateEvent) => {
         if (!e.state || e.state.modal !== 'checkout') {
-          setBuyingCourse(null);
+          setModalState({ type: 'none' });
         }
       };
       window.addEventListener('popstate', handlePopState);
       return () => window.removeEventListener('popstate', handlePopState);
     }
-  }, [buyingCourse]);
+  }, [modalState.type]);
 
   const handleCloseModal = () => {
-    if (paymentProcessing) return;
-    setBuyingCourse(null);
+    if (paymentProcessing || phoneSaving) return;
+    setModalState({ type: 'none' });
+    setPhoneInput('');
+    setPhoneError('');
     if (window.history.state?.modal === 'checkout') {
       window.history.back();
     }
   };
 
-  const handlePayment = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (paymentProcessing) return;
-
-    if (!buyingCourse) {
-      alert('Course is not available right now. Please try again later.');
-      return;
-    }
-
-    // Require user to be logged in
-    if (!user) {
-      alert('Please log in first to purchase this course.');
-      router.push('/login');
-      return;
-    }
-
-    // Extract form values BEFORE any asynchronous operations
-    const form = e.currentTarget;
-    const prefillName = (form.elements.namedItem('name') as HTMLInputElement)?.value || user.name;
-    const prefillEmail = (form.elements.namedItem('email') as HTMLInputElement)?.value || user.email;
-    const prefillContact = (form.elements.namedItem('phone') as HTMLInputElement)?.value || '';
-
+  // Open Razorpay Checkout directly (called after all checks pass)
+  const openRazorpayCheckout = async (course: CourseData) => {
+    if (paymentProcessing || !user) return;
     setPaymentProcessing(true);
 
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 seconds timeout
+    const timeoutId = setTimeout(() => abortController.abort(), 15000);
 
     try {
-      // Step 1: Create Razorpay order on server using real user ID
+      // Step 1: Create Razorpay order on server using authenticated session
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, courseId: buyingCourse.id, clientAmount: buyingCourse.price }),
+        body: JSON.stringify({ courseId: course.id, clientAmount: course.price }),
         signal: abortController.signal
       });
       clearTimeout(timeoutId);
       const data = await res.json();
       if (!data.success) throw new Error(data.message || 'Failed to create order');
 
-      // Step 2: Open Razorpay checkout
+      // Step 2: Open Razorpay checkout with user's stored info
       const options = {
         key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
         amount: data.order.amount,
         currency: data.order.currency,
         name: 'Sushant Ghadge Masterclass',
-        description: buyingCourse.title,
+        description: course.title,
         order_id: data.order.id,
         callback_url: `${window.location.origin}/api/payments/callback`,
         handler: async function (response: Record<string, string>) {
@@ -192,12 +192,12 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
 
             if (verifyData.success) {
               // Payment verified — update local state
-              const updatedIds = [...purchasedCourseIds, buyingCourse.id];
+              const updatedIds = [...purchasedCourseIds, course.id];
               const purchaseInfo = { courseIds: updatedIds, userId: user.id };
               localStorage.setItem('purchased_courses', JSON.stringify(purchaseInfo));
               setPurchasedCourseIds(updatedIds);
               setPurchasedUserId(user.id);
-              setBuyingCourse(null);
+              setModalState({ type: 'none' });
               alert('🎉 Payment successful! You will now be redirected to your dashboard downloads section.');
               window.location.href = '/dashboard?tab=downloads';
             } else {
@@ -216,9 +216,9 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
           },
         },
         prefill: {
-          name: prefillName,
-          email: prefillEmail,
-          contact: prefillContact,
+          name: user.name || '',
+          email: user.email || '',
+          contact: user.phone || '',
         },
         theme: { color: '#a855f7' }
       };
@@ -233,6 +233,96 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
         : 'Payment initialization failed. Please try again.';
       alert(`Error: ${errorMessage}`);
       setPaymentProcessing(false);
+    }
+  };
+
+  // Main Buy Now handler — handles all cases
+  const handleBuyNow = async (course: CourseData) => {
+    if (loading) return; // Prevent action while auth state is resolving
+
+    // 1. Not logged in → show auth prompt
+    if (!user) {
+      setModalState({ type: 'auth-prompt', course });
+      return;
+    }
+
+    // 2. Already purchased (client-side fast check)
+    if (purchasedCourseIds.includes(course.id)) {
+      setModalState({ type: 'already-purchased', course });
+      return;
+    }
+
+    // 3. Server-side duplicate purchase check
+    try {
+      const checkRes = await fetch(`/api/payments/check-purchase?courseId=${encodeURIComponent(course.id)}`);
+      const checkData = await checkRes.json();
+      if (checkData.purchased) {
+        // Update local cache
+        const updatedIds = [...purchasedCourseIds, course.id];
+        setPurchasedCourseIds(updatedIds);
+        if (user) {
+          localStorage.setItem('purchased_courses', JSON.stringify({ courseIds: updatedIds, userId: user.id }));
+        }
+        setModalState({ type: 'already-purchased', course });
+        return;
+      }
+    } catch {
+      // If check fails, proceed anyway — create-order will catch duplicates server-side
+    }
+
+    // 4. Missing phone → show phone-only prompt
+    if (!user.phone) {
+      setModalState({ type: 'phone-prompt', course });
+      return;
+    }
+
+    // 5. All good → open Razorpay directly
+    openRazorpayCheckout(course);
+  };
+
+  // Handle phone save and continue to Razorpay
+  const handlePhoneSaveAndPay = async () => {
+    if (phoneSaving) return;
+    
+    if (!phoneInput || !/^[6-9]\d{9}$/.test(phoneInput)) {
+      setPhoneError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    
+    setPhoneError('');
+    setPhoneSaving(true);
+
+    try {
+      const res = await fetch('/api/user/update-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneInput }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setPhoneError(data.message || 'Failed to save phone number');
+        setPhoneSaving(false);
+        return;
+      }
+
+      // Refresh user context to get the updated phone
+      await refreshUser();
+      setPhoneSaving(false);
+      
+      // Close the phone modal and proceed to Razorpay
+      const course = modalState.type === 'phone-prompt' ? modalState.course : null;
+      setModalState({ type: 'none' });
+      setPhoneInput('');
+      if (window.history.state?.modal === 'checkout') {
+        window.history.back();
+      }
+      if (course) {
+        openRazorpayCheckout(course);
+      }
+    } catch {
+      setPhoneError('Network error. Please try again.');
+      setPhoneSaving(false);
     }
   };
 
@@ -290,7 +380,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
                   course={featuredCourse}
                   isPurchased={isFeaturedPurchased}
                   isDownloading={isFeaturedDownloading}
-                  onBuyClick={() => setBuyingCourse(featuredCourse)}
+                  onBuyClick={() => handleBuyNow(featuredCourse)}
                   onDownloadClick={() => handleDownload(featuredCourse.id)}
                 />
               </div>
@@ -350,7 +440,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
                             <span className="btn-shine"></span>
                           </button>
                         ) : (
-                          <button onClick={() => setBuyingCourse(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
+                          <button onClick={() => handleBuyNow(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
                             <span className="btn-icon">🚀</span> {t('enrollNow')}
                             <span className="btn-shine"></span>
                           </button>
@@ -371,56 +461,144 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
           course={featuredCourse}
           isPurchased={isFeaturedPurchased}
           isDownloading={isFeaturedDownloading}
-          isBuying={buyingCourse !== null}
-          onBuyClick={() => setBuyingCourse(featuredCourse)}
+          isBuying={modalState.type !== 'none'}
+          onBuyClick={() => handleBuyNow(featuredCourse)}
           onDownloadClick={() => handleDownload(featuredCourse.id)}
           purchaseCardRef={purchaseCardRef}
         />
       )}
 
-      {/* Payment Modal */}
-      {buyingCourse && (
+      {/* ───── AUTH PROMPT MODAL (unauthenticated users) ───── */}
+      {modalState.type === 'auth-prompt' && (
         <div className="payment-overlay active" style={{ display: 'flex' }} onClick={handleCloseModal}>
           <div className="payment-modal active" onClick={(e) => e.stopPropagation()}>
-            <button className="payment-modal-close" onClick={handleCloseModal} aria-label="Close" disabled={paymentProcessing}>&times;</button>
+            <button className="payment-modal-close" onClick={handleCloseModal} aria-label="Close">&times;</button>
             <div className="payment-modal-header">
-              <div className="payment-modal-icon">🎬</div>
-              <h3>{buyingCourse.title}</h3>
-              <p className="payment-modal-price">
-                <span className="payment-price-original">₹{getOriginalPrice(buyingCourse).toLocaleString()}</span>
-                <span className="payment-price-current">₹{getDisplayPrice(buyingCourse).toLocaleString()}</span>
+              <div className="payment-modal-icon">🔒</div>
+              <h3>{modalState.course.title}</h3>
+            </div>
+            <div style={{
+              padding: '16px 20px',
+              margin: '16px 0',
+              borderRadius: '12px',
+              background: 'rgba(251, 191, 36, 0.08)',
+              border: '1px solid rgba(251, 191, 36, 0.2)',
+              color: '#fbbf24',
+              fontSize: '0.9rem',
+              textAlign: 'center',
+              lineHeight: 1.6,
+            }}>
+              ⚠️ Please log in or register first to purchase.
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button
+                onClick={() => router.push('/login')}
+                className="btn-primary btn-glow"
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '0.95rem', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => router.push('/register')}
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 700, background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', transition: 'background 0.3s' }}
+              >
+                Register
+              </button>
+            </div>
+            <p className="payment-secure-note" style={{ marginTop: '16px' }}>🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
+          </div>
+        </div>
+      )}
+
+      {/* ───── PHONE PROMPT MODAL (Google users without phone) ───── */}
+      {modalState.type === 'phone-prompt' && (
+        <div className="payment-overlay active" style={{ display: 'flex' }} onClick={handleCloseModal}>
+          <div className="payment-modal active" onClick={(e) => e.stopPropagation()}>
+            <button className="payment-modal-close" onClick={handleCloseModal} aria-label="Close" disabled={phoneSaving}>&times;</button>
+            <div className="payment-modal-header">
+              <div className="payment-modal-icon">📱</div>
+              <h3>Almost There!</h3>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '8px' }}>
+                We just need your phone number to complete the purchase.
               </p>
             </div>
-            {!user && (
-              <div style={{ padding: '12px 16px', marginBottom: '12px', borderRadius: '10px', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', color: '#fbbf24', fontSize: '0.85rem', textAlign: 'center' }}>
-                ⚠️ Please <a href="/login" style={{ color: '#a855f7', textDecoration: 'underline', fontWeight: 600 }}>log in</a> or <a href="/register" style={{ color: '#a855f7', textDecoration: 'underline', fontWeight: 600 }}>register</a> first to purchase.
-              </div>
-            )}
-            <form className="payment-form" onSubmit={handlePayment}>
-              <div className="payment-field">
-                <label htmlFor="pay-name">Your Name <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span></label>
-                <input type="text" id="pay-name" name="name" placeholder="Name" required minLength={2} defaultValue={user?.name || ''} />
-              </div>
-              <div className="payment-field">
-                <label htmlFor="pay-email">Email <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span></label>
-                <input type="email" id="pay-email" name="email" placeholder="example@email.com" required defaultValue={user?.email || ''} />
-              </div>
-              <div className="payment-field">
-                <label htmlFor="pay-phone">Phone <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span></label>
-                <input type="tel" id="pay-phone" name="phone" placeholder="10-digit mobile number" required pattern="[6-9][0-9]{9}" maxLength={10} />
-              </div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button type="button" onClick={handleCloseModal} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.3s' }} disabled={paymentProcessing}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary btn-glow payment-submit-btn" disabled={paymentProcessing} style={{ flex: 1, margin: 0 }}>
-                  <span className="btn-icon">{paymentProcessing ? '⏳' : '🔒'}</span>
-                  <span className="payment-btn-text">{paymentProcessing ? 'Processing...' : `Pay ₹${getDisplayPrice(buyingCourse).toLocaleString()} Securely`}</span>
-                  <span className="btn-shine"></span>
-                </button>
-              </div>
-              <p className="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
-            </form>
+            <div style={{ margin: '20px 0' }}>
+              <label htmlFor="phone-complete" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Phone Number <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="tel"
+                id="phone-complete"
+                value={phoneInput}
+                onChange={(e) => {
+                  setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10));
+                  setPhoneError('');
+                }}
+                placeholder="10-digit mobile number"
+                maxLength={10}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: phoneError ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                }}
+                autoFocus
+              />
+              {phoneError && (
+                <p style={{ color: '#fca5a5', fontSize: '0.8rem', marginTop: '8px' }}>{phoneError}</p>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button type="button" onClick={handleCloseModal} style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.3s' }} disabled={phoneSaving}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePhoneSaveAndPay}
+                className="btn-primary btn-glow payment-submit-btn"
+                disabled={phoneSaving}
+                style={{ flex: 1, margin: 0, padding: '12px', borderRadius: '12px', justifyContent: 'center', border: 'none', cursor: phoneSaving ? 'not-allowed' : 'pointer' }}
+              >
+                <span className="btn-icon">{phoneSaving ? '⏳' : '🔒'}</span>
+                <span className="payment-btn-text">{phoneSaving ? 'Saving...' : `Continue to Pay ₹${getDisplayPrice(modalState.course).toLocaleString()}`}</span>
+                <span className="btn-shine"></span>
+              </button>
+            </div>
+            <p className="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
+          </div>
+        </div>
+      )}
+
+      {/* ───── ALREADY PURCHASED MODAL ───── */}
+      {modalState.type === 'already-purchased' && (
+        <div className="payment-overlay active" style={{ display: 'flex' }} onClick={handleCloseModal}>
+          <div className="payment-modal active" onClick={(e) => e.stopPropagation()}>
+            <button className="payment-modal-close" onClick={handleCloseModal} aria-label="Close">&times;</button>
+            <div className="payment-modal-header">
+              <div className="payment-modal-icon">✅</div>
+              <h3>You already have access to this course.</h3>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '8px' }}>
+                Your purchase for <strong>{modalState.course.title}</strong> is complete. You can access it from your dashboard.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button type="button" onClick={handleCloseModal} style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.3s' }}>
+                Close
+              </button>
+              <button
+                onClick={() => { window.location.href = '/dashboard?tab=downloads'; }}
+                className="btn-primary btn-glow"
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', fontSize: '0.95rem', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
+              >
+                <span className="btn-icon">📥</span> Go to Course
+                <span className="btn-shine"></span>
+              </button>
+            </div>
           </div>
         </div>
       )}

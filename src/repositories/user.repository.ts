@@ -35,6 +35,11 @@ export class UserRepository {
     return result[0];
   }
 
+  async updatePhone(userId: string, phone: string) {
+    const result = await db.update(users).set({ phone }).where(eq(users.id, userId)).returning();
+    return result[0] || null;
+  }
+
   async updateGoogleId(userId: string, googleId: string, avatarUrl?: string) {
     const updateData: any = { googleId };
     if (avatarUrl) {

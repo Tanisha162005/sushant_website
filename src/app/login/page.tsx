@@ -25,7 +25,7 @@ export default function LoginPage() {
     setSubmitting(false);
 
     if (res.success) {
-      router.push('/');
+      window.location.href = '/';
     } else {
       setErrorMsg(res.message || 'Login failed. Please check your credentials.');
     }
@@ -186,7 +186,7 @@ export default function LoginPage() {
               letterSpacing: '1px',
               fontFamily: 'var(--font-english)'
             }}>
-              {t('emailAddress')}
+              {t('emailAddress')} *
             </label>
             <input
               type="email"
@@ -230,7 +230,7 @@ export default function LoginPage() {
               letterSpacing: '1px',
               fontFamily: 'var(--font-english)'
             }}>
-              {t('password')}
+              {t('password')} *
             </label>
             <div style={{ position: 'relative' }}>
             <input

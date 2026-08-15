@@ -9,6 +9,7 @@ import { Background3D } from '@/components/Background3D';
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -20,6 +21,11 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      setErrorMsg('Please enter a valid email address (e.g., name@example.com)');
+      return;
+    }
 
     if (password.length < 6) {
       setErrorMsg('Password must be at least 6 characters long.');
@@ -27,11 +33,11 @@ export default function RegisterPage() {
     }
 
     setSubmitting(true);
-    const res = await register(name, email, password);
+    const res = await register(name, email, password, phone || undefined);
     setSubmitting(false);
 
     if (res.success) {
-      router.push('/');
+      window.location.href = '/';
     } else {
       setErrorMsg(res.message || 'Registration failed. Please try again.');
     }
@@ -192,7 +198,7 @@ export default function RegisterPage() {
               letterSpacing: '1px',
               fontFamily: 'var(--font-english)'
             }}>
-              {t('fullName')}
+              {t('fullName')} *
             </label>
             <input
               type="text"
@@ -226,7 +232,7 @@ export default function RegisterPage() {
               letterSpacing: '1px',
               fontFamily: 'var(--font-english)'
             }}>
-              {t('emailAddress')}
+              {t('emailAddress')} *
             </label>
             <input
               type="email"
@@ -260,7 +266,43 @@ export default function RegisterPage() {
               letterSpacing: '1px',
               fontFamily: 'var(--font-english)'
             }}>
-              {t('password')}
+              PHONE NUMBER *
+            </label>
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="10-digit mobile number"
+              pattern="[6-9][0-9]{9}"
+              maxLength={10}
+              className="auth-input-glow"
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: '#fff',
+                fontSize: '0.95rem',
+                outline: 'none',
+                transition: 'all 0.2s',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              marginBottom: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              fontFamily: 'var(--font-english)'
+            }}>
+              {t('password')} *
             </label>
             <div style={{ position: 'relative' }}>
             <input

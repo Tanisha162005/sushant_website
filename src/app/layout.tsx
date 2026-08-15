@@ -4,6 +4,16 @@ import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Viewport } from "next";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#0B0514",
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

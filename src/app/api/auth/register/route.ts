@@ -7,11 +7,19 @@ const userRepo = new UserRepository();
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, password, phone } = await req.json();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
       return NextResponse.json(
-        { success: false, message: 'Name, email, and password are required' },
+        { success: false, message: 'Name, email, phone number, and password are required' },
+        { status: 400 }
+      );
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      return NextResponse.json(
+        { success: false, message: 'Please enter a valid email address (e.g., name@example.com)' },
         { status: 400 }
       );
     }
@@ -36,11 +44,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate phone format if provided (10-digit Indian mobile)
+    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+      return NextResponse.json(
+        { success: false, message: 'Please enter a valid 10-digit mobile number' },
+        { status: 400 }
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await userRepo.create({
       name: name.trim(),
       email: cleanEmail,
       password: hashedPassword,
+      phone: phone || undefined,
     });
 
     // Generate JWT token
@@ -62,6 +79,7 @@ export async function POST(req: NextRequest) {
           id: newUser.id,
           name: newUser.name,
           email: newUser.email,
+          phone: newUser.phone,
           role: newUser.role,
           avatarUrl: newUser.avatarUrl,
         },
