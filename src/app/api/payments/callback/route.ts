@@ -4,7 +4,6 @@ import { payments } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
-import { jwtVerify } from 'jose';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,25 +25,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard?error=missing_fields', req.url));
     }
 
-    // Authenticate the user session from cookies (available during standard browser form POST)
-    const token = req.cookies.get('user_token')?.value || req.cookies.get('accessToken')?.value;
-    if (!token) {
-      logger.error('[PaymentCallback] User token missing in redirect request');
-      return NextResponse.redirect(new URL('/login?redirect=/dashboard', req.url));
-    }
-
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
-    let userId: string;
-    try {
-      const { payload } = await jwtVerify(token, secret);
-      userId = payload.userId as string;
-      if (!userId) throw new Error('Invalid userId in token');
-    } catch {
-      logger.error('[PaymentCallback] JWT verification failed in redirect request');
-      return NextResponse.redirect(new URL('/login?redirect=/dashboard', req.url));
-    }
-
-    // Verify the Razorpay signature
+    // Verify the Razorpay signature (SERVER-SIDE ONLY)
+    // We use RAZORPAY_KEY_SECRET for Checkout signatures.
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     if (!keySecret) {
       logger.error('RAZORPAY_KEY_SECRET is not configured');
@@ -62,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard?error=invalid_signature', req.url));
     }
 
-    // Verify order ownership
+    // Find existing payment safely
     const existingPayment = await db
       .select()
       .from(payments)
@@ -70,16 +52,19 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (existingPayment.length === 0) {
-      logger.warn('[PaymentCallback] No payment record found for order', { razorpay_order_id });
+      logger.warn('[PaymentCallback] No payment record found for order. Cannot grant access to unknown order.', { razorpay_order_id });
       return NextResponse.redirect(new URL('/dashboard?error=order_not_found', req.url));
     }
 
-    if (existingPayment[0].userId !== userId) {
-      logger.warn('[PaymentCallback] Ownership mismatch during redirect verification', { razorpay_order_id, userId });
-      return NextResponse.redirect(new URL('/dashboard?error=unauthorized', req.url));
+    const paymentRecord = existingPayment[0];
+
+    // Idempotent: If it's already successful, just redirect
+    if (paymentRecord.status === 'successful') {
+      logger.info('[PaymentCallback] Payment already marked as successful (Idempotent)', { razorpay_order_id });
+      return NextResponse.redirect(new URL('/dashboard?tab=downloads&payment_success=true', req.url));
     }
 
-    // Update the payment record securely in the database
+    // Update ONLY the existing payment securely
     const result = await db
       .update(payments)
       .set({
@@ -95,16 +80,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard?error=update_failed', req.url));
     }
 
-    logger.info('[PaymentCallback] Payment verified successfully via mobile redirect fallback', {
+    logger.info('[PaymentCallback] Payment verified successfully via callback', {
       orderId: razorpay_order_id,
       paymentId: razorpay_payment_id,
     });
 
-    // Success! Redirect user directly to their downloads with a success parameter to trigger UI updates if necessary
     return NextResponse.redirect(new URL('/dashboard?tab=downloads&payment_success=true', req.url));
 
   } catch (error) {
-    logger.error('[PaymentCallback] Error processing Razorpay redirect callback:', error);
+    logger.error('[PaymentCallback] Error processing Razorpay callback:', error);
     return NextResponse.redirect(new URL('/dashboard?error=server_error', req.url));
   }
 }

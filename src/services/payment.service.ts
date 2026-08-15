@@ -53,8 +53,11 @@ export class PaymentService {
   }
 
   async verifyWebhook(body: string, signature: string) {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
-    if (!secret) throw new Error('RAZORPAY_WEBHOOK_SECRET not configured');
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret) {
+      logger.error('RAZORPAY_WEBHOOK_SECRET not configured');
+      throw new Error('RAZORPAY_WEBHOOK_SECRET not configured');
+    }
     
     const expectedSignature = crypto
       .createHmac('sha256', secret)
@@ -62,19 +65,52 @@ export class PaymentService {
       .digest('hex');
 
     if (expectedSignature !== signature) {
+      logger.warn('[Webhook] Invalid signature');
       throw new Error('Invalid signature');
     }
 
     const payload = JSON.parse(body);
+    const event = payload.event;
     
-    if (payload.event === 'payment.captured') {
-      const paymentEntity = payload.payload.payment.entity;
-      const orderId = paymentEntity.order_id;
-      const paymentId = paymentEntity.id;
+    if (event === 'payment.captured' || event === 'order.paid' || event === 'payment.failed') {
+      const paymentEntity = event === 'order.paid' ? payload.payload.order.entity : payload.payload.payment.entity;
+      const orderId = event === 'order.paid' ? paymentEntity.id : paymentEntity.order_id;
+      const paymentId = event === 'payment.captured' || event === 'payment.failed' ? paymentEntity.id : undefined;
 
+      const existingPaymentList = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.razorpayOrderId, orderId))
+        .limit(1);
+
+      if (existingPaymentList.length === 0) {
+        logger.warn('[Webhook] Order not found in DB, rejecting', { orderId });
+        return true; // Return 200 so Razorpay stops retrying unknown orders
+      }
+
+      const existingPayment = existingPaymentList[0];
+
+      if (existingPayment.status === 'successful') {
+        logger.info('[Webhook] Payment already successful (Idempotent)', { orderId });
+        return true;
+      }
+
+      if (event === 'payment.failed') {
+        await db.update(payments)
+          .set({ status: 'failed' })
+          .where(eq(payments.razorpayOrderId, orderId));
+        return true;
+      }
+
+      // If captured or paid, update to successful
       await db.update(payments)
-        .set({ status: 'successful', razorpayPaymentId: paymentId })
+        .set({ 
+          status: 'successful', 
+          ...(paymentId ? { razorpayPaymentId: paymentId } : {})
+        })
         .where(eq(payments.razorpayOrderId, orderId));
+        
+      logger.info('[Webhook] Payment successfully verified and updated', { orderId, paymentId });
     }
     
     return true;

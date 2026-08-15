@@ -21,6 +21,15 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://sushantghadge.com"),
   title: "Sushant Ghadge | Content Creation Masterclass",
   description: "Learn professional content creation, storytelling, video editing, and viral marketing directly from Sushant Ghadge.",
+  keywords: [
+    "Sushant Ghadge courses",
+    "Sushant Courses",
+    "Sushant helps",
+    "Sushant helps creators",
+    "Sushant Masterclass",
+    "Masterclass by Sushant",
+    "Content creation Sushant"
+  ],
   alternates: {
     canonical: "/",
   },
