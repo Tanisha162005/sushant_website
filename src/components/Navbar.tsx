@@ -134,17 +134,7 @@ export const Navbar = () => {
               color: '#fff',
               whiteSpace: 'nowrap',
             }}>
-              <span style={{
-                background: 'linear-gradient(135deg, #A855F7, #D8B4FE)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>S</span>ushant <span style={{
-                background: 'linear-gradient(135deg, #A855F7, #D8B4FE)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>G</span>hadge
+              Sushant Ghadge
             </span>
           </Link>
 
