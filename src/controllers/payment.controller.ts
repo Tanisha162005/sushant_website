@@ -40,10 +40,12 @@ export class PaymentController {
   static async webhook(req: NextRequest) {
     try {
       const signature = req.headers.get('x-razorpay-signature');
+      const eventId = req.headers.get('x-razorpay-event-id') || undefined;
+      
       if (!signature) throw new Error('Missing signature');
 
       const body = await req.text();
-      await paymentService.verifyWebhook(body, signature);
+      await paymentService.verifyWebhook(body, signature, eventId);
 
       return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {

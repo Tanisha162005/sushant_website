@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { payments, courses } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { razorpay } from '@/lib/razorpay';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
@@ -52,31 +52,35 @@ export class PaymentService {
     return { order };
   }
 
-  async verifyWebhook(body: string, signature: string) {
+  async verifyWebhook(body: string, signature: string, eventId?: string) {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret) {
       logger.error('RAZORPAY_WEBHOOK_SECRET not configured');
       throw new Error('RAZORPAY_WEBHOOK_SECRET not configured');
     }
     
+    // 2. Webhook Signature: verify using RAW body
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(body)
       .digest('hex');
 
     if (expectedSignature !== signature) {
-      logger.warn('[Webhook] Invalid signature');
+      logger.warn('[Webhook] Invalid signature', { eventId });
       throw new Error('Invalid signature');
     }
 
     const payload = JSON.parse(body);
     const event = payload.event;
     
+    // 3. Webhook Events
     if (event === 'payment.captured' || event === 'order.paid' || event === 'payment.failed') {
       const paymentEntity = event === 'order.paid' ? payload.payload.order.entity : payload.payload.payment.entity;
       const orderId = event === 'order.paid' ? paymentEntity.id : paymentEntity.order_id;
       const paymentId = event === 'payment.captured' || event === 'payment.failed' ? paymentEntity.id : undefined;
+      const amount = paymentEntity.amount;
 
+      // 6. Order Validation
       const existingPaymentList = await db
         .select()
         .from(payments)
@@ -84,35 +88,63 @@ export class PaymentService {
         .limit(1);
 
       if (existingPaymentList.length === 0) {
-        logger.warn('[Webhook] Order not found in DB, rejecting', { orderId });
+        logger.warn('[Webhook] Order not found in DB, rejecting', { orderId, eventId });
         return true; // Return 200 so Razorpay stops retrying unknown orders
       }
 
       const existingPayment = existingPaymentList[0];
 
+      // 4. Webhook Idempotency
       if (existingPayment.status === 'successful') {
-        logger.info('[Webhook] Payment already successful (Idempotent)', { orderId });
-        return true;
+        logger.info('[Webhook] Payment already successful (Idempotent)', { orderId, eventId });
+        return true; // Harmless, do not duplicate
+      }
+
+      // 5. Amount Validation
+      // Razorpay sends amount in paise, db stores amount in paise
+      if (amount !== existingPayment.amount) {
+        logger.warn('[Webhook] Amount mismatch', { 
+          orderId, 
+          expected: existingPayment.amount, 
+          received: amount 
+        });
+        return true; // Reject/ignore invalid amounts
       }
 
       if (event === 'payment.failed') {
         await db.update(payments)
           .set({ status: 'failed' })
-          .where(eq(payments.razorpayOrderId, orderId));
+          .where(and(
+            eq(payments.razorpayOrderId, orderId),
+            eq(payments.status, 'created') // 10. Database Safety: only transition from created
+          ));
+        logger.info('[Webhook] Payment marked as failed', { orderId, eventId });
         return true;
       }
 
-      // If captured or paid, update to successful
+      // If captured or paid, update to successful conditionally
+      // 10. Database Safety: ensure concurrent updates don't mess up
       await db.update(payments)
         .set({ 
           status: 'successful', 
           ...(paymentId ? { razorpayPaymentId: paymentId } : {})
         })
-        .where(eq(payments.razorpayOrderId, orderId));
+        .where(and(
+          eq(payments.razorpayOrderId, orderId),
+          eq(payments.status, 'created') // Only transition if not already successful or failed
+        ));
         
-      logger.info('[Webhook] Payment successfully verified and updated', { orderId, paymentId });
+      // 11. Logging: safe diagnostic info
+      logger.info('[Webhook] Payment successfully verified and fulfilled', { 
+        event,
+        eventId,
+        orderId, 
+        paymentId,
+        amount
+      });
     }
     
+    // 12. Webhook Response: return quickly
     return true;
   }
 }
