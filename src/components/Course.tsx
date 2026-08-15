@@ -29,7 +29,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const purchaseCardRef = useRef<HTMLDivElement>(null);
   const hasFetchedPurchases = useRef<string | null>(null);
@@ -134,6 +134,11 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
 
     if (!buyingCourse) {
       alert('Course is not available right now. Please try again later.');
+      return;
+    }
+
+    if (loading) {
+      alert('Checking authentication status, please wait...');
       return;
     }
 
@@ -391,7 +396,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
                 <span className="payment-price-current">₹{getDisplayPrice(buyingCourse).toLocaleString()}</span>
               </p>
             </div>
-            {!user && (
+            {!user && !loading && (
               <div style={{ padding: '12px 16px', marginBottom: '12px', borderRadius: '10px', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', color: '#fbbf24', fontSize: '0.85rem', textAlign: 'center' }}>
                 ⚠️ Please <a href="/login" style={{ color: '#a855f7', textDecoration: 'underline', fontWeight: 600 }}>log in</a> or <a href="/register" style={{ color: '#a855f7', textDecoration: 'underline', fontWeight: 600 }}>register</a> first to purchase.
               </div>
