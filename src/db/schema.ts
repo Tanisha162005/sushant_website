@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, bigint, timestamp, pgEnum, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, bigint, timestamp, pgEnum, boolean, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'super_admin', 'admin', 'support', 'content_manager', 'finance_manager']);
@@ -133,6 +133,10 @@ export const auditLogs = pgTable('audit_logs', {
   resource: varchar('resource', { length: 255 }).notNull(),
   details: text('details'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    createdAtIndex: index('audit_logs_created_at_idx').on(table.createdAt)
+  };
 });
 
 export const courseAssets = pgTable('course_assets', {

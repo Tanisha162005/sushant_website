@@ -137,7 +137,7 @@ export default function LoginPage() {
           </Link>
           
           <h1 style={{
-            fontSize: '2.2rem',
+            fontSize: 'clamp(1.5rem, 6vw, 2.2rem)',
             fontWeight: 900,
             fontFamily: 'var(--font-marathi-heading)',
             lineHeight: 1.1,

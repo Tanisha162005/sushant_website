@@ -149,7 +149,7 @@ export default function RegisterPage() {
           </Link>
           
           <h1 style={{
-            fontSize: '2rem',
+            fontSize: 'clamp(1.5rem, 6vw, 2rem)',
             fontWeight: 900,
             fontFamily: 'var(--font-marathi-heading)',
             lineHeight: 1.2,

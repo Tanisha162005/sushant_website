@@ -126,7 +126,10 @@ export const Navbar = () => {
         >
           {/* Logo — Gradient first letter */}
           <Link href="/" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', position: 'relative', zIndex: 60 }}>
-            <Image src="/logo.png" alt="Sushant Ghadge Logo" width={150} height={36} style={{ height: '36px', width: 'auto', objectFit: 'contain' }} priority />
+            <picture>
+              <source media="(max-width: 768px)" srcSet="/logo-mobile.webp" />
+              <img src="/logo.png" alt="Sushant Ghadge Logo" width={150} height={36} style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+            </picture>
             <span style={{
               fontSize: 'clamp(1rem, 3.5vw, 1.4rem)',
               fontWeight: 900,
@@ -316,7 +319,7 @@ export const Navbar = () => {
                 fontSize: '11px',
                 border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: '9999px',
-                padding: '0.25rem 0.6rem',
+                padding: '0.5rem 1rem',
                 display: 'flex',
                 gap: '0.5rem',
                 fontWeight: 700,
@@ -356,8 +359,8 @@ export const Navbar = () => {
         style={{
           position: 'fixed',
           inset: 0,
-          height: '100vh',
-          minHeight: '-webkit-fill-available',
+          height: '100dvh',
+          minHeight: '100vh',
           zIndex: 40,
           backgroundColor: 'rgba(5, 10, 24, 0.98)',
           backdropFilter: 'blur(30px)',

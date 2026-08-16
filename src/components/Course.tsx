@@ -393,7 +393,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
 
           {/* Additional courses below the featured one */}
           {courses.length > 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2.5rem', marginTop: '4rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '2.5rem', marginTop: '4rem' }}>
               {courses.slice(1).map(course => {
                 const displayPrice = getDisplayPrice(course);
                 const originalPrice = getOriginalPrice(course);
@@ -435,12 +435,12 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
                         </div>
 
                         {isPurchased ? (
-                          <button onClick={() => handleDownload(course.id)} disabled={isDownloading} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
+                          <button onClick={() => handleDownload(course.id)} disabled={isDownloading} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', whiteSpace: 'nowrap' }}>
                             <span className="btn-icon">{isDownloading ? '⏳' : '📥'}</span> {isDownloading ? 'Downloading...' : 'Download Course'}
                             <span className="btn-shine"></span>
                           </button>
                         ) : (
-                          <button onClick={() => handleBuyNow(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px' }}>
+                          <button onClick={() => handleBuyNow(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', whiteSpace: 'nowrap' }}>
                             <span className="btn-icon">🚀</span> {t('enrollNow')}
                             <span className="btn-shine"></span>
                           </button>
@@ -553,7 +553,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
                 <p style={{ color: '#fca5a5', fontSize: '0.8rem', marginTop: '8px' }}>{phoneError}</p>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', position: 'sticky', bottom: '-28px', background: 'linear-gradient(180deg, transparent 0%, rgba(15, 10, 30, 0.9) 20%, rgba(15, 10, 30, 1) 100%)', padding: '16px 0 28px 0', marginTop: '-16px', zIndex: 10 }}>
               <button type="button" onClick={handleCloseModal} style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.3s' }} disabled={phoneSaving}>
                 Cancel
               </button>

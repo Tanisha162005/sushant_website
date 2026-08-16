@@ -196,7 +196,7 @@ export default function DashboardPage() {
 
         {/* User Executive Profile Header */}
         <div style={{
-          borderRadius: '24px', padding: '32px 36px',
+          borderRadius: '24px', padding: 'clamp(16px, 5vw, 32px) clamp(16px, 5vw, 36px)',
           marginBottom: '40px', position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(145deg, #131824 0%, #0D111A 100%)',
           border: '1px solid rgba(255, 255, 255, 0.09)',
@@ -267,7 +267,7 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <div>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <nav className="dashboard-nav-tabs">
               {navTabs.map((tab) => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -684,7 +684,11 @@ export default function DashboardPage() {
                 </div>
 
                 {purchasedCoursesList.length > 0 ? (
-                  <div className="dashboard-table-wrapper">
+                  <div style={{ position: 'relative' }}>
+                    <div className="md:hidden" style={{ textAlign: 'right', fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', fontStyle: 'italic', paddingRight: '4px' }}>
+                      Swipe to see more →
+                    </div>
+                    <div className="dashboard-table-wrapper">
                     <table style={{ width: '100%', textAlign: 'left', fontSize: '0.88rem', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -713,6 +717,7 @@ export default function DashboardPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
                   </div>
                 ) : (
                   <div style={{ borderRadius: '20px', padding: '60px', textAlign: 'center', background: 'linear-gradient(145deg, #131824 0%, #0D111A 100%)', border: '1px solid rgba(255, 255, 255, 0.08)', color: '#94A3B8' }}>

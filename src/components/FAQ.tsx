@@ -32,9 +32,8 @@ export const FAQ = () => {
             <div 
               key={index} 
               className={`faq-item ${openIndex === index ? 'active' : ''}`}
-              onClick={() => toggleFaq(index)}
             >
-              <div className="faq-question">
+              <div className="faq-question" onClick={() => toggleFaq(index)} style={{ cursor: 'pointer', userSelect: 'none' }}>
                 <span>{faq.q}</span>
                 <div className="faq-icon">{openIndex === index ? '−' : '+'}</div>
               </div>

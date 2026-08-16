@@ -44,6 +44,7 @@ export const VideoSection = () => {
               style={{ aspectRatio: '16/9', border: 'none', borderRadius: 'inherit', objectFit: 'cover' }}
               controls
               playsInline
+              preload="none"
             />
           </div>
         </div>

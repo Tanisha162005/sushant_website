@@ -22,21 +22,24 @@ export const About = () => {
           <div className="about-image-wrapper reveal-left">
             <div className="perspective-container">
               <div className="about-image-card tilt-3d">
-                <Image
-                  src="/about-profile.jpeg"
-                  alt="Sushant Ghadge"
-                  className="about-image"
-                  width={400}
-                  height={500}
-                  style={{
-                    background: 'linear-gradient(135deg, #050A18 0%, #0A1530 50%, #0D1B40 100%)',
-                    width: '100%',
-                    height: 'auto',
-                    aspectRatio: '4/5',
-                    borderRadius: '24px',
-                    objectFit: 'cover',
-                  }}
-                />
+                <picture>
+                  <source media="(max-width: 768px)" srcSet="/about-profile-mobile.webp" />
+                  <img
+                    src="/about-profile.jpeg"
+                    alt="Sushant Ghadge"
+                    className="about-image"
+                    width={400}
+                    height={500}
+                    style={{
+                      background: 'linear-gradient(135deg, #050A18 0%, #0A1530 50%, #0D1B40 100%)',
+                      width: '100%',
+                      height: 'auto',
+                      aspectRatio: '4/5',
+                      borderRadius: '24px',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </picture>
                 <div className="about-image-border-glow"></div>
               </div>
               <div className="about-image-glow"></div>

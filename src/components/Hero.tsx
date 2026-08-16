@@ -61,7 +61,7 @@ export const Hero = ({ initialCourse }: HeroProps) => {
 
             {/* Main Heading */}
             <h1 style={{
-              fontSize: 'clamp(2.5rem, 6vw, 5rem)',
+              fontSize: 'clamp(1.75rem, 6vw, 5rem)',
               fontWeight: 900,
               lineHeight: 1.15,
               letterSpacing: '-0.02em',

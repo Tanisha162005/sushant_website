@@ -42,7 +42,7 @@ export default async function AdminCouponsPage() {
         </div>
       ) : (
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: '1rem',
         }}>
           {allCoupons.map((coupon) => (
             <div key={coupon.id} style={{
