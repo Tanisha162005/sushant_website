@@ -48,7 +48,7 @@ async function checkRateLimit(ip: string, category: string, limit: number, windo
   return record.count <= limit;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('x-forwarded-host') || request.headers.get('host');
   const isLive = shouldShowWebsite(hostname);
   const pathname = request.nextUrl.pathname;
