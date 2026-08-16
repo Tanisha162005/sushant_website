@@ -20,10 +20,6 @@ interface FloatingCourseCardProps {
 export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) => {
   const [course, setCourse] = useState<CourseData | null>(initialCourse ?? null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
-  const [phoneInput, setPhoneInput] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [phoneSaving, setPhoneSaving] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
   const { user, refreshUser, loading } = useAuth();
@@ -189,47 +185,11 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
       // If check fails, proceed — server will catch duplicates
     }
 
-    // 3. Missing phone → show phone prompt
-    if (!user.phone) {
-      setShowPhonePrompt(true);
-      return;
-    }
-
-    // 4. All good → open Razorpay
+    // 3. All good → open Razorpay
     openRazorpayCheckout();
   };
 
-  const handlePhoneSaveAndPay = async () => {
-    if (phoneSaving) return;
-    if (!phoneInput || !/^[6-9]\d{9}$/.test(phoneInput)) {
-      setPhoneError('Please enter a valid 10-digit mobile number');
-      return;
-    }
-    setPhoneError('');
-    setPhoneSaving(true);
 
-    try {
-      const res = await fetch('/api/user/update-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneInput }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        setPhoneError(data.message || 'Failed to save phone number');
-        setPhoneSaving(false);
-        return;
-      }
-      await refreshUser();
-      setPhoneSaving(false);
-      setShowPhonePrompt(false);
-      setPhoneInput('');
-      openRazorpayCheckout();
-    } catch {
-      setPhoneError('Network error. Please try again.');
-      setPhoneSaving(false);
-    }
-  };
 
   if (!course) return null;
 
@@ -280,64 +240,7 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
         </div>
       </div>
 
-      {/* Phone Prompt Overlay for FloatingCourseCard */}
-      {showPhonePrompt && (
-        <div className="payment-overlay active" style={{ display: 'flex' }} onClick={() => { if (!phoneSaving) { setShowPhonePrompt(false); setPhoneInput(''); setPhoneError(''); } }}>
-          <div className="payment-modal active" onClick={(e) => e.stopPropagation()}>
-            <button className="payment-modal-close" onClick={() => { if (!phoneSaving) { setShowPhonePrompt(false); setPhoneInput(''); setPhoneError(''); } }} aria-label="Close" disabled={phoneSaving}>&times;</button>
-            <div className="payment-modal-header">
-              <div className="payment-modal-icon">📱</div>
-              <h3>Almost There!</h3>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '8px' }}>
-                We just need your phone number to complete the purchase.
-              </p>
-            </div>
-            <div style={{ margin: '20px 0' }}>
-              <label htmlFor="floating-phone" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Phone Number <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="tel"
-                id="floating-phone"
-                value={phoneInput}
-                onChange={(e) => { setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
-                placeholder="10-digit mobile number"
-                maxLength={10}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: phoneError ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                }}
-                autoFocus
-              />
-              {phoneError && <p style={{ color: '#fca5a5', fontSize: '0.8rem', marginTop: '8px' }}>{phoneError}</p>}
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button type="button" onClick={() => { if (!phoneSaving) { setShowPhonePrompt(false); setPhoneInput(''); setPhoneError(''); } }} style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }} disabled={phoneSaving}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handlePhoneSaveAndPay}
-                className="btn-primary btn-glow payment-submit-btn"
-                disabled={phoneSaving}
-                style={{ flex: 1, margin: 0, padding: '12px', borderRadius: '12px', justifyContent: 'center', border: 'none', cursor: phoneSaving ? 'not-allowed' : 'pointer' }}
-              >
-                <span className="btn-icon">{phoneSaving ? '⏳' : '🔒'}</span>
-                <span className="payment-btn-text">{phoneSaving ? 'Saving...' : `Continue to Pay ₹${displayPrice.toLocaleString()}`}</span>
-                <span className="btn-shine"></span>
-              </button>
-            </div>
-            <p className="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
-          </div>
-        </div>
-      )}
+
     </>
   );
 };

@@ -25,7 +25,6 @@ interface CourseProps {
 type ModalState =
   | { type: 'none' }
   | { type: 'auth-prompt'; course: CourseData }
-  | { type: 'phone-prompt'; course: CourseData }
   | { type: 'already-purchased'; course: CourseData };
 
 export const Course = ({ initialCourses = [] }: CourseProps) => {
@@ -35,9 +34,6 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [modalState, setModalState] = useState<ModalState>({ type: 'none' });
-  const [phoneInput, setPhoneInput] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [phoneSaving, setPhoneSaving] = useState(false);
   const { t } = useLanguage();
   const { user, refreshUser, loading } = useAuth();
   const router = useRouter();
@@ -138,10 +134,8 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
   }, [modalState.type]);
 
   const handleCloseModal = () => {
-    if (paymentProcessing || phoneSaving) return;
+    if (paymentProcessing) return;
     setModalState({ type: 'none' });
-    setPhoneInput('');
-    setPhoneError('');
     if (window.history.state?.modal === 'checkout') {
       window.history.back();
     }
@@ -270,61 +264,11 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
       // If check fails, proceed anyway — create-order will catch duplicates server-side
     }
 
-    // 4. Missing phone → show phone-only prompt
-    if (!user.phone) {
-      setModalState({ type: 'phone-prompt', course });
-      return;
-    }
-
-    // 5. All good → open Razorpay directly
+    // 4. All good → open Razorpay directly
     openRazorpayCheckout(course);
   };
 
-  // Handle phone save and continue to Razorpay
-  const handlePhoneSaveAndPay = async () => {
-    if (phoneSaving) return;
-    
-    if (!phoneInput || !/^[6-9]\d{9}$/.test(phoneInput)) {
-      setPhoneError('Please enter a valid 10-digit mobile number');
-      return;
-    }
-    
-    setPhoneError('');
-    setPhoneSaving(true);
 
-    try {
-      const res = await fetch('/api/user/update-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneInput }),
-      });
-      const data = await res.json();
-
-      if (!data.success) {
-        setPhoneError(data.message || 'Failed to save phone number');
-        setPhoneSaving(false);
-        return;
-      }
-
-      // Refresh user context to get the updated phone
-      await refreshUser();
-      setPhoneSaving(false);
-      
-      // Close the phone modal and proceed to Razorpay
-      const course = modalState.type === 'phone-prompt' ? modalState.course : null;
-      setModalState({ type: 'none' });
-      setPhoneInput('');
-      if (window.history.state?.modal === 'checkout') {
-        window.history.back();
-      }
-      if (course) {
-        openRazorpayCheckout(course);
-      }
-    } catch {
-      setPhoneError('Network error. Please try again.');
-      setPhoneSaving(false);
-    }
-  };
 
   const handleDownload = (courseId: string) => {
     if (!purchasedCourseIds.includes(courseId) || !purchasedUserId) return;
@@ -510,69 +454,6 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
         </div>
       )}
 
-      {/* ───── PHONE PROMPT MODAL (Google users without phone) ───── */}
-      {modalState.type === 'phone-prompt' && (
-        <div className="payment-overlay active" style={{ display: 'flex' }} onClick={handleCloseModal}>
-          <div className="payment-modal active" onClick={(e) => e.stopPropagation()}>
-            <button className="payment-modal-close" onClick={handleCloseModal} aria-label="Close" disabled={phoneSaving}>&times;</button>
-            <div className="payment-modal-header">
-              <div className="payment-modal-icon">📱</div>
-              <h3>Almost There!</h3>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '8px' }}>
-                We just need your phone number to complete the purchase.
-              </p>
-            </div>
-            <div style={{ margin: '20px 0' }}>
-              <label htmlFor="phone-complete" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Phone Number <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="tel"
-                id="phone-complete"
-                value={phoneInput}
-                onChange={(e) => {
-                  setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10));
-                  setPhoneError('');
-                }}
-                placeholder="10-digit mobile number"
-                maxLength={10}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: phoneError ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                }}
-                autoFocus
-              />
-              {phoneError && (
-                <p style={{ color: '#fca5a5', fontSize: '0.8rem', marginTop: '8px' }}>{phoneError}</p>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '12px', position: 'sticky', bottom: '-28px', background: 'linear-gradient(180deg, transparent 0%, rgba(15, 10, 30, 0.9) 20%, rgba(15, 10, 30, 1) 100%)', padding: '16px 0 28px 0', marginTop: '-16px', zIndex: 10 }}>
-              <button type="button" onClick={handleCloseModal} style={{ padding: '12px 24px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, transition: 'background 0.3s' }} disabled={phoneSaving}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handlePhoneSaveAndPay}
-                className="btn-primary btn-glow payment-submit-btn"
-                disabled={phoneSaving}
-                style={{ flex: 1, margin: 0, padding: '12px', borderRadius: '12px', justifyContent: 'center', border: 'none', cursor: phoneSaving ? 'not-allowed' : 'pointer' }}
-              >
-                <span className="btn-icon">{phoneSaving ? '⏳' : '🔒'}</span>
-                <span className="payment-btn-text">{phoneSaving ? 'Saving...' : `Continue to Pay ₹${getDisplayPrice(modalState.course).toLocaleString()}`}</span>
-                <span className="btn-shine"></span>
-              </button>
-            </div>
-            <p className="payment-secure-note">🔒 Secured by Razorpay | 256-bit SSL Encryption</p>
-          </div>
-        </div>
-      )}
 
       {/* ───── ALREADY PURCHASED MODAL ───── */}
       {modalState.type === 'already-purchased' && (
