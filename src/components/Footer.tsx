@@ -23,7 +23,16 @@ export const Footer = () => {
             href="#course"
             onClick={(e) => {
               e.preventDefault();
-              document.getElementById('course')?.scrollIntoView({ behavior: 'smooth' });
+              const desktopBuyBtn = document.querySelector('.purchase-card-btn-buy') as HTMLButtonElement;
+              const mobileBuyBtn = document.querySelector('.mobile-sticky-buy-btn:not(.mobile-sticky-buy-btn-download)') as HTMLButtonElement;
+              
+              if (desktopBuyBtn) {
+                desktopBuyBtn.click();
+              } else if (mobileBuyBtn) {
+                mobileBuyBtn.click();
+              } else {
+                document.getElementById('course')?.scrollIntoView({ behavior: 'smooth' });
+              }
             }}
             className="btn-primary btn-glow"
             style={{
