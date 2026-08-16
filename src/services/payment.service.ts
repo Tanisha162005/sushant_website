@@ -9,6 +9,21 @@ export class PaymentService {
   async createOrder(userId: string, courseId: string, clientAmount?: number) {
     if (!clientAmount || clientAmount < 100) throw new Error('Invalid amount provided.');
 
+    // 1. Verify user hasn't already purchased to prevent duplicate orders
+    const existingPurchase = await db
+      .select({ id: payments.id })
+      .from(payments)
+      .where(and(
+        eq(payments.userId, userId),
+        eq(payments.courseId, courseId),
+        eq(payments.status, 'successful')
+      ))
+      .limit(1);
+
+    if (existingPurchase.length > 0) {
+      throw new Error('You already have access to this course.');
+    }
+
     // Razorpay has a strict 40-character maximum limit on receipt ID
     const receipt = `rcpt_${Date.now().toString(36)}_${courseId.slice(-8)}`;
 

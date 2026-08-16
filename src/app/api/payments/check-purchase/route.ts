@@ -52,12 +52,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       purchased: existingPurchase.length > 0,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0'
+      }
     });
   } catch (error) {
     console.error('Check purchase error:', error);
     return NextResponse.json(
       { success: false, purchased: false, message: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
   }
 }

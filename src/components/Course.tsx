@@ -95,7 +95,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
     }
 
     // Check backend for verified purchases of the current user
-    fetch('/api/user/purchases')
+    fetch(`/api/user/purchases?t=${Date.now()}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
@@ -238,7 +238,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
 
   // Main Buy Now handler — handles all cases
   const handleBuyNow = async (course: CourseData) => {
-    if (loading) return; // Prevent action while auth state is resolving
+    if (loading || paymentProcessing) return; // Prevent action while auth state is resolving or payment is processing
 
     // 1. Not logged in → show auth prompt
     if (!user) {
@@ -254,7 +254,7 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
 
     // 3. Server-side duplicate purchase check
     try {
-      const checkRes = await fetch(`/api/payments/check-purchase?courseId=${encodeURIComponent(course.id)}`);
+      const checkRes = await fetch(`/api/payments/check-purchase?courseId=${encodeURIComponent(course.id)}&t=${Date.now()}`);
       const checkData = await checkRes.json();
       if (checkData.purchased) {
         // Update local cache
@@ -440,8 +440,8 @@ export const Course = ({ initialCourses = [] }: CourseProps) => {
                             <span className="btn-shine"></span>
                           </button>
                         ) : (
-                          <button onClick={() => handleBuyNow(course)} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', whiteSpace: 'nowrap' }}>
-                            <span className="btn-icon">🚀</span> {t('enrollNow')}
+                          <button onClick={() => handleBuyNow(course)} disabled={paymentProcessing} className="btn-primary btn-glow border-0 cursor-pointer" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                            <span className="btn-icon">🚀</span> {paymentProcessing ? '⏳ Processing...' : t('enrollNow')}
                             <span className="btn-shine"></span>
                           </button>
                         )}

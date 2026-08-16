@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
 
     const purchasedCourses = userPurchases.map(p => p.course);
     if (purchasedCourses.length === 0) {
-      return NextResponse.json({ success: true, data: [] });
+      return NextResponse.json({ success: true, data: [] }, {
+        headers: { 'Cache-Control': 'no-store, max-age=0' }
+      });
     }
 
     const courseIds = purchasedCourses.map(c => c.id);
@@ -79,9 +81,14 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, data: enriched });
+    return NextResponse.json({ success: true, data: enriched }, {
+      headers: { 'Cache-Control': 'no-store, max-age=0' }
+    });
   } catch (error) {
     console.error('Error fetching purchased courses:', error);
-    return NextResponse.json({ success: false, data: [] }, { status: 500 });
+    return NextResponse.json({ success: false, data: [] }, { 
+      status: 500,
+      headers: { 'Cache-Control': 'no-store, max-age=0' }
+    });
   }
 }

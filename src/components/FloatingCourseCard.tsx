@@ -178,7 +178,7 @@ export const FloatingCourseCard = ({ initialCourse }: FloatingCourseCardProps) =
 
     // 2. Check if already purchased
     try {
-      const checkRes = await fetch(`/api/payments/check-purchase?courseId=${encodeURIComponent(course.id)}`);
+      const checkRes = await fetch(`/api/payments/check-purchase?courseId=${encodeURIComponent(course.id)}&t=${Date.now()}`);
       const checkData = await checkRes.json();
       if (checkData.purchased) {
         alert('You already have access to this course!');

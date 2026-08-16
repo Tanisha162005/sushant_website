@@ -149,6 +149,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         signedUrl,
         filename: downloadFilename,
         expiresIn: 600,
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0'
+        }
       });
     }
 

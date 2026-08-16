@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) {
-      fetch('/api/user/purchases')
+      fetch(`/api/user/purchases?t=${Date.now()}`)
         .then((r) => r.json())
         .then((data) => {
           if (data.success && data.data) {
@@ -99,7 +99,7 @@ export default function DashboardPage() {
     const key = `lesson-${lessonId}`;
     setDownloadingId(key);
     try {
-      const res = await fetch(`/api/courses/${courseId}/download?lessonId=${lessonId}&json=true`);
+      const res = await fetch(`/api/courses/${courseId}/download?lessonId=${lessonId}&json=true&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.signedUrl) {
         const a = document.createElement('a');
@@ -121,7 +121,7 @@ export default function DashboardPage() {
     const key = `asset-${courseId}-${assetType}`;
     setDownloadingId(key);
     try {
-      const res = await fetch(`/api/courses/${courseId}/download?assetType=${assetType}&json=true`);
+      const res = await fetch(`/api/courses/${courseId}/download?assetType=${assetType}&json=true&t=${Date.now()}`);
       const data = await res.json();
       if (data.success && data.signedUrl) {
         const a = document.createElement('a');
@@ -143,7 +143,7 @@ export default function DashboardPage() {
   const handleLegacyDownload = async (courseId: string) => {
     setDownloadingId(courseId);
     try {
-      window.location.href = `/api/courses/${courseId}/download?userId=${user?.id || 'temp-user'}`;
+      window.location.href = `/api/courses/${courseId}/download?userId=${user?.id || 'temp-user'}&t=${Date.now()}`;
     } catch {
       alert('Download initiation failed.');
     }
