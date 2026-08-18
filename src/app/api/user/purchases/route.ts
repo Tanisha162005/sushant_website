@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get('user_token')?.value;
+    const token = req.cookies.get('user_token')?.value || req.cookies.get('accessToken')?.value;
 
     if (!token) {
       return NextResponse.json({ success: false, data: [] }, { status: 401 });
@@ -85,9 +85,9 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'no-store, max-age=0' }
     });
   } catch (error) {
-    console.error('Error fetching purchased courses:', error);
+    console.warn('[UserPurchases] Unauthorized or invalid token access attempt');
     return NextResponse.json({ success: false, data: [] }, { 
-      status: 500,
+      status: 401,
       headers: { 'Cache-Control': 'no-store, max-age=0' }
     });
   }

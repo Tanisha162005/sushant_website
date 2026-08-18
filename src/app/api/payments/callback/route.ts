@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const errorDescription = formData.get('error[description]');
     if (errorDescription) {
       logger.warn('[PaymentCallback] Razorpay returned an error:', errorDescription);
-      return NextResponse.redirect(new URL('/dashboard?error=' + encodeURIComponent(errorDescription as string), req.url));
+      return NextResponse.redirect(new URL('/dashboard?error=' + encodeURIComponent(errorDescription as string), req.url), 303);
     }
 
     const razorpay_order_id = formData.get('razorpay_order_id') as string;
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       logger.error('[PaymentCallback] Missing payment verification fields in redirect');
-      return NextResponse.redirect(new URL('/dashboard?error=missing_fields', req.url));
+      return NextResponse.redirect(new URL('/dashboard?error=missing_fields', req.url), 303);
     }
 
     // Verify the Razorpay signature (SERVER-SIDE ONLY)
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     if (!keySecret) {
       logger.error('RAZORPAY_KEY_SECRET is not configured');
-      return NextResponse.redirect(new URL('/dashboard?error=server_error', req.url));
+      return NextResponse.redirect(new URL('/dashboard?error=server_error', req.url), 303);
     }
 
     const body = razorpay_order_id + '|' + razorpay_payment_id;
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     if (expectedSignature !== razorpay_signature) {
       logger.warn('[PaymentCallback] Invalid signature during redirect verification', { razorpay_order_id, razorpay_payment_id });
-      return NextResponse.redirect(new URL('/dashboard?error=invalid_signature', req.url));
+      return NextResponse.redirect(new URL('/dashboard?error=invalid_signature', req.url), 303);
     }
 
     // Find existing payment safely
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (existingPayment.length === 0) {
       logger.warn('[PaymentCallback] No payment record found for order. Cannot grant access to unknown order.', { razorpay_order_id });
-      return NextResponse.redirect(new URL('/dashboard?error=order_not_found', req.url));
+      return NextResponse.redirect(new URL('/dashboard?error=order_not_found', req.url), 303);
     }
 
     const paymentRecord = existingPayment[0];
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Idempotent: If it's already successful, just redirect
     if (paymentRecord.status === 'successful') {
       logger.info('[PaymentCallback] Payment already marked as successful (Idempotent)', { razorpay_order_id });
-      return NextResponse.redirect(new URL('/dashboard?tab=downloads&payment_success=true', req.url));
+      return NextResponse.redirect(new URL('/dashboard?tab=downloads&payment_success=true', req.url), 303);
     }
 
     // Update ONLY the existing payment securely
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     if (result.length === 0) {
       logger.error('[PaymentCallback] Payment record update failed');
-      return NextResponse.redirect(new URL('/dashboard?error=update_failed', req.url));
+      return NextResponse.redirect(new URL('/dashboard?error=update_failed', req.url), 303);
     }
 
     logger.info('[PaymentCallback] Payment verified successfully via callback', {
@@ -85,10 +85,10 @@ export async function POST(req: NextRequest) {
       paymentId: razorpay_payment_id,
     });
 
-    return NextResponse.redirect(new URL('/dashboard?tab=downloads&payment_success=true', req.url));
+    return NextResponse.redirect(new URL('/dashboard?tab=downloads&payment_success=true', req.url), 303);
 
   } catch (error) {
     logger.error('[PaymentCallback] Error processing Razorpay callback:', error);
-    return NextResponse.redirect(new URL('/dashboard?error=server_error', req.url));
+    return NextResponse.redirect(new URL('/dashboard?error=server_error', req.url), 303);
   }
 }
