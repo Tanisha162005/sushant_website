@@ -340,6 +340,23 @@ const translations = {
     testi5Name: 'Neha S.',
     testi5Role: 'Aspiring Creator',
     testi5Text: '"Ever since I started following Sushant Helps Creators, my perspective on looking at content has completely changed. In just a few weeks, my account gained 2,000+ new followers and one of my Reels reached 1 Million+. Most importantly, now I have clarity on what to post and why to post."',
+    
+    // Forgot Password
+    forgotPassword: 'Forgot Password?',
+    forgotPasswordDesc: 'Enter your email and we\'ll send you a reset link.',
+    sendResetLink: 'Send Reset Link',
+    sending: 'Sending...',
+    backToLogin: 'Back to Login',
+    resetSuccessMsg: 'If an account exists with this email, a password reset link has been sent.',
+    setNewPassword: 'Set New Password',
+    setNewPasswordDesc: 'Enter your new password below.',
+    newPassword: 'NEW PASSWORD',
+    confirmPassword: 'CONFIRM PASSWORD',
+    resetting: 'Resetting...',
+    resetPassword: 'Reset Password',
+    requestNewResetLink: 'Request New Reset Link',
+    goToLogin: 'Go to Login',
+    
     testi6Name: 'Ritesh D.',
     testi6Role: 'Video Creator',
     testi6Text: '"I had watched the Foundation Course as a trial on the Community Wall. Before that, I thought Content Creation just meant posting a Reel. But after taking this course, I got a lot of clarity about Niche, Strategy, and Direction. Now I don\'t create random content, but work according to a system. This course proved to be a game changer for me."',

@@ -26,8 +26,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Don't apply admin layout to the login page
-  if (pathname === '/admin/login') {
+  // Don't apply admin layout to the login/password-reset pages
+  if (pathname === '/admin/login' || pathname === '/admin/forgot-password' || pathname === '/admin/reset-password') {
     return <>{children}</>;
   }
 

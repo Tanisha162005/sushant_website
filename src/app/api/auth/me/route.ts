@@ -36,6 +36,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Invalidate JWTs issued before the last password change
+    if (user.passwordChangedAt && payload.iat) {
+      const passwordChangedAtSecs = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000);
+      if ((payload.iat as number) < passwordChangedAtSecs) {
+        return NextResponse.json(
+          { success: false, user: null },
+          {
+            status: 401,
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Pragma': 'no-cache', 'Expires': '0', 'Surrogate-Control': 'no-store',
+            }
+          }
+        );
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

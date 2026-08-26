@@ -43,6 +43,13 @@
       "when": 1786871182301,
       "tag": "0005_shocking_slayback",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787769578936,
+      "tag": "0006_ancient_demogoblin",
+      "breakpoints": true
     }
   ]
 }

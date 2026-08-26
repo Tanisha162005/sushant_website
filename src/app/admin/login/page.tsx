@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Shield, Lock, Mail, Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -195,6 +196,16 @@ export default function AdminLoginPage() {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
+            </div>
+
+            {/* Forgot Password Link */}
+            <div style={{ textAlign: 'right', marginTop: '-0.5rem' }}>
+              <Link href="/admin/forgot-password" style={{
+                fontSize: '0.8125rem', color: '#c084fc', fontWeight: 600,
+                textDecoration: 'none', transition: 'color 0.2s',
+              }}>
+                Forgot Password?
+              </Link>
             </div>
 
             {/* Submit */}

@@ -280,7 +280,15 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button
+          {/* Forgot Password Link */}
+          <div style={{ textAlign: 'right', marginTop: '-8px' }}>
+            <Link href="/forgot-password" style={{
+              fontSize: '0.8rem', color: '#c084fc', fontWeight: 600,
+              textDecoration: 'none', transition: 'color 0.2s',
+            }}>
+              {lang === 'mr' ? 'पासवर्ड विसरलात?' : 'Forgot Password?'}
+            </Link>
+          </div>          <button
             type="submit"
             disabled={submitting}
             className="btn-primary"

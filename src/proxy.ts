@@ -61,6 +61,8 @@ export async function proxy(request: NextRequest) {
       pathname.startsWith('/api') ||
       pathname.startsWith('/admin') ||
       pathname.startsWith('/login') ||
+      pathname.startsWith('/forgot-password') ||
+      pathname.startsWith('/reset-password') ||
       pathname.startsWith('/dashboard') ||
       pathname === '/favicon.ico' ||
       pathname.endsWith('.png') ||
@@ -113,7 +115,7 @@ export async function proxy(request: NextRequest) {
 
   // Protect Admin APIs and File Upload Endpoints at the Edge
   if (
-    (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/login')) ||
+    (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/login') && !pathname.startsWith('/api/admin/forgot-password') && !pathname.startsWith('/api/admin/reset-password')) ||
     pathname.startsWith('/api/upload') ||
     pathname.startsWith('/api/r2')
   ) {
@@ -136,7 +138,7 @@ export async function proxy(request: NextRequest) {
 
   // Live Mode: Normal Admin authentication logic
   // Check if the path is under /admin (but not /admin/login)
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login') && !pathname.startsWith('/admin/forgot-password') && !pathname.startsWith('/admin/reset-password')) {
     const token = request.cookies.get('admin_token')?.value;
 
     if (!token) {

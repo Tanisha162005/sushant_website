@@ -16,6 +16,7 @@ export const users = pgTable('users', {
   googleId: varchar('google_id', { length: 255 }).unique(),
   avatarUrl: varchar('avatar_url', { length: 512 }),
   role: userRoleEnum('role').default('user').notNull(),
+  passwordChangedAt: timestamp('password_changed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -152,6 +153,27 @@ export const courseAssets = pgTable('course_assets', {
   checksum: varchar('checksum', { length: 64 }),
   uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
 });
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────
+
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  tokenHash: varchar('token_hash', { length: 64 }).notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  tokenHashIdx: index('password_reset_tokens_token_hash_idx').on(table.tokenHash),
+  userIdIdx: index('password_reset_tokens_user_id_idx').on(table.userId),
+}));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [passwordResetTokens.userId],
+    references: [users.id],
+  }),
+}));
 
 // ─── Course Lessons (Multi-Lesson Download Architecture) ──────────────────
 

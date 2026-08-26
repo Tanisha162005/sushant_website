@@ -48,4 +48,14 @@ export class UserRepository {
     const result = await db.update(users).set(updateData).where(eq(users.id, userId)).returning();
     return result[0] || null;
   }
+
+  async updatePassword(userId: string, hashedPassword: string) {
+    const result = await db.update(users).set({
+      password: hashedPassword,
+      passwordChangedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(users.id, userId)).returning();
+    return result[0] || null;
+  }
 }
+

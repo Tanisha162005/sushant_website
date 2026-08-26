@@ -89,3 +89,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true, message: 'Logged out successfully' });
+  response.cookies.delete('admin_token');
+  return response;
+}
