@@ -1,4 +1,9 @@
-import { proxy, config as proxyConfig } from './proxy';
+import { proxy } from './proxy';
 
 export const middleware = proxy;
-export const config = proxyConfig;
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|svg|jpg|jpeg)|robots.txt|sitemap.*\\.xml|.*\\.webmanifest).*)',
+  ],
+};
