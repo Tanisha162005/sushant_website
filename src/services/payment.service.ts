@@ -111,6 +111,12 @@ export class PaymentService {
 
       // 4. Webhook Idempotency
       if (existingPayment.status === 'successful') {
+        // If it's successful but missing paymentId (e.g., order.paid arrived first), update it
+        if (!existingPayment.razorpayPaymentId && paymentId) {
+          await db.update(payments)
+            .set({ razorpayPaymentId: paymentId })
+            .where(eq(payments.id, existingPayment.id));
+        }
         logger.info('[Webhook] Payment already successful (Idempotent)', { orderId, eventId });
         return true; // Harmless, do not duplicate
       }
