@@ -8,7 +8,7 @@ async function run() {
       .set({
         title: 'Creation Masterclass – Foundation Course (मराठी)',
         description: 'कोर्समध्ये सामाविष्ट गोष्टी : \n* या कोर्समध्ये तुम्हाला एकूण ५ व्हिडिओज मिळतील, जे तुम्ही कायमस्वरूपी डाउनलोड करून घेऊ शकता',
-        price: 9900,
+        price: 14900,
         originalPrice: 49900,
         status: 'published',
         category: null,
