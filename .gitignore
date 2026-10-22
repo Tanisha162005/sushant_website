@@ -45,3 +45,9 @@ next-env.d.ts
 
 # Ignore large video files to avoid GitHub limits
 *.MOV
+
+# Scratch and test scripts
+check-*.ts
+test-*.ts
+test-*.mjs
+loadtest.js
